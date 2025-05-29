@@ -1,0 +1,19 @@
+class Schema {
+    public TableName: string;
+    public ColumnName: string;
+    public ModelName: string;
+    public IsPrimaryKey: boolean;
+    public IsIdentity: boolean;
+    public IsNotNull: boolean;
+    public CharacterMaximumLength: number;
+    public NumericPrecision: number;
+    public NumericScale: number;
+    public DataTypeDb: string;
+    public DataTypeTs: string;
+    public Format: string;
+    public DefualtValue: string;
+    public DisplayTh: string;
+    public DisplayEn: string;
+    public DisplayOther: string;
+}
+export default Schema;
