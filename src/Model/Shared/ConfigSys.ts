@@ -11,6 +11,7 @@ class ConfigSys {
     public ReleaseNote: string
     public Port: number;
     public AppName: string
+    public IsEncrypt: boolean
 }
 
 export default ConfigSys;

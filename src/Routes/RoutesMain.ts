@@ -3,7 +3,7 @@
 import express from "express";
 import { Request, Response } from "express";
 import ConfigSys from "@/Config/ConfigSys";
-
+import TripleDES from "@/Common/TripleDES"
 //#endregion Import
 
 //#region Fields
@@ -46,10 +46,42 @@ router.get("/ReleaseNote", (req: Request, res: Response) => {
 });
 //#endregion ReleaseNote
 
+//#region Encrypt
+router.post("/Encrypt", async (req: Request, res: Response): Promise<void> => {
+  let result: string
+  const message = req.body.Message
+  const secret = req.body.Secret
+  console.log(secret)
+  if (secret === ConfigSys.Secret) {
+    const tripleDES: TripleDES = new TripleDES()
+    result = tripleDES.EncryptTripleDES(message);
+  }
+  else {
+    result = "Secret Incoret"
+  }
+
+  res.send(result);
+});
+//#endregion Encrypt
 
 
+//#region Decrypt
+router.post("/Decrypt", async (req: Request, res: Response): Promise<void> => {
+  let result: string
+  const message = req.body.Message
+  const secret = req.body.Secret
+  console.log(secret)
+  if (secret === ConfigSys.Secret) {
+    const tripleDES: TripleDES = new TripleDES()
+    result = tripleDES.DecryptTripleDES(message);
+  }
+  else {
+    result = "Secret Incoret"
+  }
 
-
+  res.send(result);
+});
+//#endregion Decrypt
 
 
 

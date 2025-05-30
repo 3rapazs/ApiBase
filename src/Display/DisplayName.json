@@ -16,7 +16,7 @@
     {"TableName" : "T_M_AREA","ColumnName" : "CREATE_USER","ModelName" : "CreateUser","DisplyTh" : "CreateUser","DisplyEn" : "CreateUser","DisplyOt" : "CreateUser"},
     {"TableName" : "T_M_AREA","ColumnName" : "UPDATE_DATE","ModelName" : "UpdateDate","DisplyTh" : "UpdateDate","DisplyEn" : "UpdateDate","DisplyOt" : "UpdateDate"},
     {"TableName" : "T_M_AREA","ColumnName" : "UPDATE_USER","ModelName" : "UpdateUser","DisplyTh" : "UpdateUser","DisplyEn" : "UpdateUser","DisplyOt" : "UpdateUser"},
-    {"TableName" : "T_M_BROKER","ColumnName" : "BRK_TAX_NO","ModelName" : "BrkTaxNo","DisplyTh" : "BrkTaxNo","DisplyEn" : "BrkTaxNo","DisplyOt" : "BrkTaxNo"},
+    {"TableName" : "T_M_BROKER","ColumnName" : "BRK_TAX_NO","ModelName" : "BrkTaxNo","DisplyTh" : "รหัสตัวแทน","DisplyEn" : "BrkTaxNo","DisplyOt" : "BrkTaxNo"},
     {"TableName" : "T_M_BROKER","ColumnName" : "BRK_BRN_NO","ModelName" : "BrkBrnNo","DisplyTh" : "BrkBrnNo","DisplyEn" : "BrkBrnNo","DisplyOt" : "BrkBrnNo"},
     {"TableName" : "T_M_BROKER","ColumnName" : "BRK_NAME_ENG","ModelName" : "BrkNameEng","DisplyTh" : "BrkNameEng","DisplyEn" : "BrkNameEng","DisplyOt" : "BrkNameEng"},
     {"TableName" : "T_M_BROKER","ColumnName" : "BRK_NAME_THAI","ModelName" : "BrkNameThai","DisplyTh" : "BrkNameThai","DisplyEn" : "BrkNameThai","DisplyOt" : "BrkNameThai"},

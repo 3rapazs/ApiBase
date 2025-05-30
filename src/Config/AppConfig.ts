@@ -1,17 +1,17 @@
 import Model from "../Model/Shared/ConfigDB";
-
+import ConfigSys from "./ConfigSys";
 const SetConfig: Model = {
-    user: "sa",
-    password: "CdsSql2019",
-    server: "CDS-DEV-03",
-    database: "ProjectBase",
+    user: ConfigSys.IsEncrypt ? "OvTXFp1AY64=" : "sa",
+    password: ConfigSys.IsEncrypt ? "Pk9RrNcHzXU8tsl1S2AtaA==" : "CdsSql2019",
+    server: ConfigSys.IsEncrypt ? "3FKrLMqA1Zf2sMZ2Ve+Gbg==" : "CDS-DEV-03",
+    database: ConfigSys.IsEncrypt ? "KX/BngLnufHF/iXmbvjcuA==" : "ProjectBase",
     options: {
         encrypt: false,
         trustedconnection: true,
         enableArithAbort: true,
-        instancename: "SQL2019",
+        instancename: ConfigSys.IsEncrypt ? "5ebTN+oEzlY=" : "SQL2019",
     },
-    port: null
+    port: 1433
 }
 
 
