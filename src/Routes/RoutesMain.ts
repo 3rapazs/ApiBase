@@ -51,7 +51,6 @@ router.post("/Encrypt", async (req: Request, res: Response): Promise<void> => {
   let result: string
   const message = req.body.Message
   const secret = req.body.Secret
-  console.log(secret)
   if (secret === ConfigSys.Secret) {
     const tripleDES: TripleDES = new TripleDES()
     result = tripleDES.EncryptTripleDES(message);
@@ -70,7 +69,6 @@ router.post("/Decrypt", async (req: Request, res: Response): Promise<void> => {
   let result: string
   const message = req.body.Message
   const secret = req.body.Secret
-  console.log(secret)
   if (secret === ConfigSys.Secret) {
     const tripleDES: TripleDES = new TripleDES()
     result = tripleDES.DecryptTripleDES(message);
