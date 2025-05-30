@@ -36,7 +36,8 @@ app.use(`${pathApi}/Depot`, routesDepot);
 import routesImexporter from "../src/Routes/Master/RoutesImexporter"
 app.use(`${pathApi}/Imexporter`, routesImexporter);
 
-import routesArea from "./Routes/Master/RoutesArea"
+//[Add By Threerapat On Version 0111 [30/05/2025 15:28:57] ]
+import routesArea from "@/Routes/Master/RoutesArea"
 app.use(`${pathApi}/Area`, routesArea);
 
 //#endregion Master Routes

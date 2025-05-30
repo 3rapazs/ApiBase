@@ -1,0 +1,1399 @@
+﻿<%-- 
+Name:CDSLib2018_StoredProcedures_Views
+Author: Denchai W.
+Description: Generates SELECT stored procedure based on one or more selected views." %>
+Update on September 2007: Added GetByAny Procedure to template
+Update on July 2008:  Change Length of Parameters to be realistic and Change from nvarchar type to varchar
+								Change Find Procedure's parameter to Where Clause (use Dynamic SQL) + Support Top and Order By Clause
+								Change body's of GetPaged, GetAny to lower risks which may came from script's length is longer than max. characters by splitting variables
+								Add Count procedure
+								Use Dynamic SQL in GetAll + Support Top and Order By Clause
+Update on January 2015 // Update CDSLib2012 to CDSLib2015 By Chanyanan Kantee
+--%>
+
+<%@ CodeTemplate Language="VB" 
+	TargetLanguage="T-SQL" 
+	Src=".\CommonSqlCode.vb" 
+	Inherits="Templates.CommonSqlCode" 
+	Debug="True" 
+	Description="Generates SELECT stored procedure based on one or more selected views" %>
+
+<%--GENERAL PARAMETERS--%>
+<%@ Property Name="CompanyName" Optional="True" Type="System.String" Default="Computer Data System Co., Ltd." Category="General" Description="The name of your company." %>
+<%@ Property Name="CompanyURL" Optional="True" Type="System.String" Default="http://www.cdscom.co.th" Category="General" Description="The URL of your company." %>
+<%@ Property Name="Author" Type="System.String" Default="" Category="General" Description="Author who create procedure from this template" %>
+	
+<%@ Property Name="SourceViews" Type="SchemaExplorer.ViewSchemaCollection" Category="Context" Description="Views that the stored procedures should be based on."%>	
+
+<%--OPTIONS PARAMETERS--%>
+<%@ Property Name="IsolationLevel" Type="TransactionIsolationLevelEnum" Default="None" Category="Options" Description="Isolation level to use in generated procedures." %>
+
+<%@ Property Name="IncludeDrop" Type="System.Boolean" Default="True" Category="Options" Description="If true drop statements will be generated to drop existing stored procedures." %>
+<%@ Property Name="IncludeGetAll" Type="System.Boolean" Default="True" Category="Options" Description="If true getAll statements will be generated." %>
+<%@ Property Name="IncludeFind" Type="System.Boolean" Default="True" Category="Options" Description="If true find statements will be generated." %>
+<%@ Property Name="IncludeGetByAny" Type="System.Boolean" Default="True" Category="Options" Description="If true getByAny statements will be generated." %>
+<%@ Property Name="IncludeCount" Type="System.Boolean" Default="True" Category="Options" Description="If true Count statements will be generated." %>
+
+<%@ Property Name="ExcludeFields" Type="System.String()" Optional="True" Category="Options" Description="Enter a list of fields to exclude from parameter generation" %>
+
+<%@ Property Name="IdentityColumn" Type="System.String" Optional="True" Category="Options" Description="Enter a list of fields that is identity. This is for Oracle only"%>
+<%@ Property Name="DbmsType" Type="DbmsTypeEnum" Default="SqlServer" Category="Options" Description="DBMS Type to use in generated procedures.If you select Sqlserver database version will work related to the dbms selected" %>
+<%@ Property Name="DatabaseVersion" Type="DatabaseVersionEnum" Default="Sql2005AndUpper" Category="Options" Description="Database Version to use in generated procedures." %>
+
+<%--STYLE PARAMETERS--%>
+<%@ Property Name="ProcedurePrefix" Type="System.String" Default="USP_V_" Category="Style" Optional="True" Description="prefix to use for all generated stored procedures." %>
+<%@ Property Name="GetSuffix" Type="System.String" Default="_GET" Category="Style" Description="Suffix to use for Get stored procedures returning all values." %>
+<%@ Property Name="GetAllSuffix" Type="System.String" Default="_ALL" Category="Style" Description="Suffix to use for GetAll stored procedures returning all values." %>
+<%@ Property Name="FindSuffix" Type="System.String" Default="_FND" Category="Style" Description="Suffix to use for all generated selective SELECT stored procedures." %>
+<%@ Property Name="GetByAnySuffix" Type="System.String" Default="_BY_ANY" Category="Style" Description="Suffix to use for all generated selective SELECT stored procedures." %>
+<%@ Property Name="CountSuffix" Type="System.String" Default="_CNT" Category="Style" Description="Suffix to use for Count stored procedures." %>
+
+<%@ Property Name="StrippedViewPrefixes" Type="System.String" Default="V_" Category="Style" Description="String in View name which should be stripped off (delimit by semicolon)" %>
+
+<%@ Assembly Name="SchemaExplorer" %>
+<%@ Assembly Name="System.Design" %>
+<%@ Import Namespace="SchemaExplorer" %>
+<%@ Import Namespace="System.Text" %>
+<%@ Import Namespace="System.Text.RegularExpressions" %>
+<%@ Import Namespace="System.Collections" %>
+
+USE <%=SourceViews(0).Database.Name%>
+
+<% 
+	For st as integer = 0 to SourceViews.Count -1
+		Source  = SourceViews(st)
+		Owner = GetOwner(Source)
+		Name = GetSafeName(Source)
+		commandStem = StrippedTableName(GetCleanName(Source), StrippedViewPrefixes)
+		tableComment = Source.Description
+		
+		'Collection of all columns in the table.
+		cols = Source.Columns	
+		'Collection of columns which exclude some fields (if any)
+		colsList = GetAcceptFields(cols)
+		ViewTextString = Source.ViewText
+		
+'----- =============================================DROP EXISTING STORED PROCEDURES ======================================
+		If IncludeDrop Then
+			If IncludeGetAll Then
+%>  
+<%=GetDropStatement(owner, (ProcedurePrefix + commandStem + GetSuffix + GetAllSuffix))%>
+<%=GetDropStatement(owner, (ProcedurePrefix + commandStem + GetSuffix + "_PAGED"))%>
+<%				
+			End If	'Of IncludeGetAll 
+			If IncludeFind Then
+%>
+<%=GetDropStatement(owner, (ProcedurePrefix + commandStem + FindSuffix))%>
+<% 						
+			End If	'Of IncludeFind 
+
+			If IncludeGetByAny Then
+%>
+<%=GetDropStatement(owner, (ProcedurePrefix + commandStem + GetSuffix + GetByAnySuffix))%>
+<% 			
+			End If ' of IncludeGetByAny
+			
+			If IncludeCount Then
+%>
+<%=GetDropStatement(owner, (ProcedurePrefix + commandStem + CountSuffix))%>
+<% 			
+			End If ' of IncludeCount
+			
+		End If 'Of IncludeDrop
+		' -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+		
+		' ====================================== GETALL & GETPAGED=======================================================
+		If IncludeGetAll Then
+		' -------------------------------------------------------------- GETALL
+		%>
+		
+<%=GetProcedureHeader(owner, (ProcedurePrefix + commandStem + GetSuffix + GetAllSuffix), Author, _
+					   string.Format("Gets all records from the {0} table", name))%>					
+<%= GetProcedureDeclaration(owner, (ProcedurePrefix + commandStem + GetSuffix + GetAllSuffix), "GETALL")%>
+<%= GetSetTransactionIsolationLevelStatement() %>
+
+<%Select Case DbmsType
+  Case DbmsTypeEnum.Oracle%>
+v_SQLSELECT VARCHAR2(8000 CHAR);
+v_SQLFROM VARCHAR2(200 CHAR);
+v_SQLORDERBY VARCHAR2(500 CHAR);
+v_SQLTOP VARCHAR2(100 CHAR);
+
+BEGIN
+v_SQLSELECT  := 'SELECT  <% For i as integer = 0 to Source.Columns.Count -1 
+													Response.Write(Source.Columns(i).Name)
+													if (i < Source.Columns.Count-1) Then
+														Response.Write(", " & Environment.NewLine)
+													End If 
+												Next i%> ';
+v_SQLFROM := 'FROM <%= Source.Name %> ';
+
+IF LENGTH(v_ORDER_BY) > 0 THEN
+   BEGIN
+      v_SQLORDERBY := ' ORDER BY ' || v_ORDER_BY ;
+   END;
+ELSE
+   BEGIN
+      v_SQLORDERBY := <%=BuildOrderList(colsList)%>;
+   END; 
+END IF;
+
+IF v_TOP > 0 THEN
+BEGIN
+      v_SQLTOP := ' WHERE ROWNUM <= ' || v_TOP ;
+END;
+END IF;
+
+OPEN cv_1 FOR
+    'SELECT * FROM (' || v_SQLSELECT || v_SQLFROM || v_SQLORDERBY || ')' || v_SQLTOP;
+
+END;
+<%Case DbmsTypeEnum.SqlServer%>
+DECLARE @SQLSELECT AS VARCHAR(8000)
+DECLARE @SQLFROM AS VARCHAR(200)
+DECLARE @SQLORDERBY AS VARCHAR(500)
+
+SET @SQLSELECT = 'SELECT  '
+
+IF @TOP > 0 
+BEGIN
+	SET @SQLSELECT = @SQLSELECT + ' TOP ' + CAST(@TOP AS VARCHAR) + ' '
+END
+
+SET @SQLSELECT  = @SQLSELECT + ' <% For i as integer = 0 to Source.Columns.Count -1 
+													Response.Write("[" + Source.Columns(i).Name + "] AS " + ConvertNormalName(Source.Columns(i).Name))
+													if (i < Source.Columns.Count-1) Then
+														Response.Write(", " & Environment.NewLine)
+													End If 
+												Next i%> '
+SET @SQLFROM = 'FROM <%=owner%>[<%= Source.Name %>] '
+
+IF LEN(@ORDER_BY) > 0
+BEGIN
+	SET @SQLORDERBY = ' ORDER BY ' + @ORDER_BY
+END
+
+exec (@SQLSELECT + @SQLFROM + @SQLORDERBY)
+
+GO
+<%End Select%>
+  
+
+		<%' ---------------------------------------------------- GETPAGED%>
+<%=GetProcedureHeader(owner, (ProcedurePrefix + commandStem + GetSuffix + "_PAGED"), Author, _
+					string.Format("Gets records from the {0} view passing page index and page count parameters", name))%>					
+<%= GetProcedureDeclaration(owner, (ProcedurePrefix + commandStem + GetSuffix + "_PAGED"), "GETPAGED")%>
+<%= GetSetTransactionIsolationLevelStatement() %>				
+
+<%Select Case DbmsType
+  Case DbmsTypeEnum.Oracle%>
+      v_PageLowerBound NUMBER(10,0);
+      v_PageUpperBound NUMBER(10,0);
+      v_RowsToReturn NUMBER(10,0);
+
+      v_SQL VARCHAR2(8000 CHAR);
+      v_SUBSQL VARCHAR2(8000 CHAR);
+      v_SQLWHERE VARCHAR2(8000 CHAR);
+      v_SQLORDERBY VARCHAR2(500 CHAR);
+BEGIN
+    -- First set the rowcount
+    v_RowsToReturn := v_PAGE_SIZE * (v_PAGE_INDEX + 1);
+    --SET ROWCOUNT @RowsToReturn
+
+    -- Set the page bounds
+    v_PageLowerBound := v_PAGE_SIZE * v_PAGE_INDEX;
+    v_PageUpperBound := v_PageLowerBound + v_PAGE_SIZE;
+
+	-- Insert into the temp table
+	IF LENGTH(v_WHERE_CLAUSE) > 0 THEN
+	    BEGIN
+		    v_SQLWHERE :=  ' WHERE ' || v_WHERE_CLAUSE;
+	    END;
+    ELSE    
+	    BEGIN
+		    v_SQLWHERE := '';
+	    END;
+	END IF;
+    
+	IF LENGTH(v_ORDER_BY) > 0 THEN
+	    BEGIN
+		    v_SQLORDERBY := 'ORDER BY ' || v_ORDER_BY;
+	    END;
+	ELSE
+	    BEGIN
+		    v_SQLORDERBY := <%=BuildOrderList(colsList)%>;
+	    END;
+    END IF;
+					
+	
+	--Set RowCount After Total Rows is determined
+	-- Return paged results
+	v_SUBSQL := 'SELECT <%= BuildColList(colsList) %>, ROW_NUMBER() over (' || v_SQLORDERBY || ') As ROW_NUMBER
+				FROM  <%= Source.Name %> ' || v_SQLWHERE;
+										
+	v_SQL := 	'SELECT <%= BuildColList(colsList) %>
+				FROM (' || v_SUBSQL || ') A 
+				WHERE ROW_NUMBER > ' || v_PageLowerBound || ' AND
+				ROW_NUMBER <= ' || v_PageUpperBound || ' ' ||
+				'ORDER BY ROW_NUMBER';
+								
+	OPEN cv_1 FOR 
+    v_SQL;									
+END;
+/
+<%Case DbmsTypeEnum.SqlServer%>
+BEGIN
+DECLARE @PageLowerBound int
+DECLARE @PageUpperBound int
+DECLARE @RowsToReturn int
+
+-- First set the rowcount
+SET @RowsToReturn = @PAGE_SIZE * (@PAGE_INDEX + 1)
+--SET ROWCOUNT @RowsToReturn
+
+-- Set the page bounds
+SET @PageLowerBound = @PAGE_SIZE * @PAGE_INDEX
+SET @PageUpperBound = @PageLowerBound + @PAGE_SIZE
+
+				<% if DatabaseVersion = DatabaseVersionEnum.Sql2000 Then %> 
+					-- Create a temp table to store the select results
+					CREATE TABLE #PAGE_INDEX
+					(
+						[IndexId] int IDENTITY (1, 1) NOT NULL,
+						<%=GetPagedHelper(Source.Columns)%> 
+					)
+					
+					-- Insert into the temp table
+					declare @SQL as varchar(8000)
+					declare @SQLSELECT as varchar(8000)
+					declare @SQLWHERE as varchar(8000)
+					declare @SQLORDERBY as varchar(500)
+					
+					
+					SET @SQL = ' INSERT INTO #PAGE_INDEX '
+					SET @SQLSELECT =  ' SELECT * FROM <%=owner%>[<%= Source.Name %>] '
+					
+					IF LEN(@WHERE_CLAUSE) > 0
+					BEGIN
+						SET @SQLWHERE = ' WHERE ' + @WHERE_CLAUSE
+					END
+					
+					IF LEN(@ORDER_BY) > 0
+					BEGIN
+						SET @SQLORDERBY = ' ORDER BY ' + @ORDER_BY
+					END
+					
+					-- Populate the temp table
+					exec (@SQL + @SQLSELECT + @SQLWHERE + @SQLORDERBY)
+					
+					-- Return total count
+					SELECT @@ROWCOUNT
+					
+					--Set RowCount After Total Rows is determined
+					SET ROWCOUNT @RowsToReturn
+					
+					-- Return paged results
+					SET @SQLSELECT = 'SELECT <%= BuildColList(colsList) %> '
+					SET @SQL = ' FROM 	#PAGE_INDEX PAGE_INDEX
+					WHERE 	PAGE_INDEX.IndexID > ' + CAST(@PageLowerBound AS nvarchar) + ' AND
+							PAGE_INDEX.IndexID <= ' + cast(@PageUpperBound as nvarchar) 
+					
+					DECLARE @ORDER VARCHAR(500)
+					SET @ORDER = 'PAGE_INDEX.IndexID'
+					
+					IF LEN(@ORDER_BY) > 0
+					BEGIN
+						SET @ORDER =  @ORDER_BY + ', ' + @ORDER
+					END
+					
+					SET @SQLORDERBY = ' ORDER BY ' + @ORDER
+					
+					
+					exec (@SQLSELECT +@SQL + @SQLORDERBY)
+					
+					END
+				<% else 'else DatabaseVersion%>
+					-- Insert into the temp table
+					declare @SQL as varchar(8000)
+					declare @SUBSQL as varchar(8000)
+					declare @SQLWHERE as varchar(8000)
+					declare @SQLORDERBY as varchar(8000)
+					
+					IF LEN(@WHERE_CLAUSE) > 0
+					BEGIN
+						SET @SQLWHERE =  'WHERE ' + @WHERE_CLAUSE
+					END
+
+					ELSE
+
+					BEGIN
+						SET @SQLWHERE = ''
+					END
+					
+					IF LEN(@ORDER_BY) > 0
+					BEGIN
+						SET @SQLORDERBY = 'ORDER BY ' + @ORDER_BY
+					END
+					ELSE
+					BEGIN
+						SET @SQLORDERBY = <%=BuildOrderList(colsList)%> 
+					END
+					
+					-- Return total count
+					--SET @SQL = 'SELECT COUNT(1) 
+					--			FROM <%=owner%>[<%= Source.Name %>] '
+					--			+ @SQLWHERE
+					--exec (@SQL)
+					
+					--Set RowCount After Total Rows is determined
+					SET ROWCOUNT @RowsToReturn
+					
+					-- Return paged results
+					
+					SET @SUBSQL = 'SELECT *, Row_Number() over (' + @SQLORDERBY + ') As RowNumber
+										FROM  <%=owner%>[<%= Source.Name %>] ' + @SQLWHERE
+										
+					SET @SQL = 	'SELECT <%= BuildColList(colsList) %>
+								FROM (' + @SUBSQL + ') A 
+								WHERE RowNumber > ' + CAST(@PageLowerBound AS VARCHAR(10)) + ' AND
+										RowNumber <= ' + CAST(@PageUpperBound AS VARCHAR(10)) + ' ' +
+								'ORDER BY RowNumber'
+							
+                    --Start Add By Threerapat On 02/06/22        
+                    DECLARE @TEMP TABLE (COUNT_TOTAL INT)
+				    INSERT @TEMP
+				    EXEC  [dbo].<%= (ProcedurePrefix + commandStem + CountSuffix) %> @WHERE_CLAUSE
+				    SELECT @COUNT_TOTAL = COUNT_TOTAL  FROM @TEMP	    
+                    --End Add By Threerapat On 02/06/22           
+                            
+					exec (@SQL)			
+										
+					END
+				<% End if 'End DatabaseVersion%> 
+GO
+<%End Select%>
+		
+
+<%			
+		End If 'Of Generate Procedure of GetAll
+
+					If IncludeCount Then
+		' -------------------------------------------------------------- COUNT
+		%>
+		
+<%=GetProcedureHeader(owner, (ProcedurePrefix + commandStem + CountSuffix), Author, _
+					   string.Format("Count records from the {0} table with specified Where Clause", name))%>					
+<%= GetProcedureDeclaration(owner, (ProcedurePrefix + commandStem + CountSuffix), "COUNT")%>
+<%= GetSetTransactionIsolationLevelStatement() %>
+<%Select Case DbmsType
+   Case DbmsTypeEnum.Oracle%>
+v_SQLSELECT VARCHAR2(500 CHAR);
+v_SQLFROM VARCHAR2(200 CHAR);
+v_SQLWHERE VARCHAR2(8000 CHAR);
+
+BEGIN
+    v_SQLSELECT := 'SELECT COUNT(*) AS COUNT_TOTAL ';
+    v_SQLFROM := 'FROM <%= Source.Name %> ';
+    IF LENGTH(v_WHERE_CLAUSE) > 0 THEN
+    BEGIN
+	    v_SQLWHERE := ' WHERE  ' || v_WHERE_CLAUSE;
+    END;
+    END IF;
+    OPEN cv_1 FOR
+    v_SQLSELECT || v_SQLFROM || v_SQLWHERE;
+END;
+/
+<%Case DbmsTypeEnum.SqlServer%>
+DECLARE @SQLSELECT AS VARCHAR(500)
+DECLARE @SQLFROM AS VARCHAR(200)
+DECLARE @SQLWHERE AS VARCHAR(8000)
+
+SET @SQLSELECT = 'SELECT COUNT(*) AS COUNT_TOTAL '
+SET @SQLFROM = 'FROM <%=owner%>[<%= Source.Name %>] '
+
+IF LEN(@WHERE_CLAUSE) > 0
+BEGIN
+	SET @SQLWHERE = ' WHERE  ' + @WHERE_CLAUSE
+END
+
+exec (@SQLSELECT + @SQLFROM + @SQLWHERE)
+
+GO
+<%End Select%>
+
+		<%
+		End If 'End IncludeCount
+		
+' ====================================== FIND =======================================================		
+		If IncludeFInd Then
+		%>		
+<%=GetProcedureHeader(owner, ProcedurePrefix + commandStem + FindSuffix, Author, _
+					   string.Format("Finds records in the {0} table passing nullable parameters", name))%>					
+<%= GetProcedureDeclaration(owner, ProcedurePrefix + commandStem + FindSuffix, "FIND", cols)%>
+<%= GetSetTransactionIsolationLevelStatement() %>
+<%Select Case DbmsType
+    Case DbmsTypeEnum.Oracle%>
+v_SQLSELECT VARCHAR2(8000 CHAR);
+v_SQLFROM VARCHAR2(1000 CHAR);
+v_SQLWHERE VARCHAR2(8000 CHAR);
+v_SQLORDERBY VARCHAR2(500 CHAR);
+v_SQLTOP VARCHAR2(500 CHAR);
+
+BEGIN
+    v_SQLSELECT := 'SELECT <%= BuildColList(colsList) %> ';
+
+    v_SQLFROM := ' FROM 	<%= Source.Name %> ';
+    
+IF LENGTH(v_WHERE_CLAUSE) > 0 THEN
+BEGIN
+	v_SQLWHERE := ' WHERE  ' || v_WHERE_CLAUSE; 
+END;
+END IF;
+
+IF LENGTH(v_ORDER_BY) > 0 THEN
+BEGIN
+  v_SQLORDERBY := ' ORDER BY ' || v_ORDER_BY; 
+END;
+END IF;
+		
+IF v_TOP > 0 THEN
+BEGIN
+    v_SQLTOP := ' WHERE ROWNUM <= ' || v_TOP;
+END;
+END IF;
+
+OPEN cv_1 FOR
+    'SELECT * FROM (' || v_SQLSELECT || v_SQLFROM || v_SQLWHERE || v_SQLORDERBY || ')' || v_SQLTOP;
+END;
+/
+<%Case DbmsTypeEnum.SqlServer%>
+DECLARE @SQLSELECT VARCHAR(8000)
+DECLARE @SQLFROM VARCHAR(1000)
+DECLARE @SQLWHERE VARCHAR(8000)
+DECLARE @SQLORDERBY AS VARCHAR(500)
+
+SET @SQLSELECT = 'SELECT  '
+
+IF @TOP > 0 
+BEGIN
+	SET @SQLSELECT = @SQLSELECT + ' TOP ' + CAST(@TOP AS VARCHAR) + ' '
+END
+
+SET @SQLSELECT = @SQLSELECT + ' <%= BuildColList(colsList) %> '
+
+SET @SQLFROM = ' FROM 	 <%=owner%>[<%= Source.Name %>] '
+
+IF LEN(@WHERE_CLAUSE) > 0
+BEGIN
+	SET @SQLWHERE = ' WHERE  ' + @WHERE_CLAUSE 
+END
+		
+IF LEN(@ORDER_BY) > 0
+BEGIN
+	SET @SQLORDERBY = ' ORDER BY ' + @ORDER_BY
+END
+
+EXEC (@SQLSELECT + @SQLFROM + @SQLWHERE + @SQLORDERBY)		
+GO	
+<%End Select%>
+
+<%
+		End If 'of IncludeFind	
+		
+' -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+' ====================================== GETBYANY =======================================================
+		' GetByAny
+		If IncludeGetByAny Then
+		%>		
+<%=GetProcedureHeader(owner, ProcedurePrefix + commandStem + GetSuffix + GetByAnySuffix, Author, _
+					   string.Format("Get records in the {0} table based on any columns", name))%>					
+<%= GetProcedureDeclaration(owner, ProcedurePrefix + commandStem + GetSuffix + GetByAnySuffix, "GETBYANY", cols)%>
+<%= GetSetTransactionIsolationLevelStatement() %>
+<%Select Case DbmsType
+  Case DbmsTypeEnum.Oracle%>
+v_PageLowerBound NUMBER(10,0);
+v_PageUpperBound NUMBER(10,0);
+v_RowsToReturn NUMBER(10,0);
+
+v_SQL varchar2(8000 CHAR);
+v_SUBSQL varchar2(8000 CHAR);
+v_SQLSELECT varchar2(500 CHAR);
+v_SQLWHERE varchar2(8000 CHAR);
+v_SQLORDERBY varchar2(500 CHAR);
+
+BEGIN
+    -- First set the rowcount
+    v_RowsToReturn := v_PAGE_SIZE * (v_PAGE_INDEX + 1);
+    --SET ROWCOUNT @RowsToReturn
+
+    -- Set the page bounds
+    v_PageLowerBound := v_PAGE_SIZE * v_PAGE_INDEX;
+    v_PageUpperBound := v_PageLowerBound + v_PAGE_SIZE;
+
+	IF LENGTH(v_VALUE_TO_FIND) > 0 THEN
+	    BEGIN
+	        v_SQLWHERE := ' WHERE ' || 
+			<%
+				dim tmpWhere as String = String.Empty
+				For i as integer = 0 to cols.Count -1
+					if IsGetAnyColumn(cols(i)) Then
+						if i > 0 Then
+							tmpWhere += String.Format ("		|| '' '' || NVL({0},''''){1}", cols(i).Name, Environment.NewLine) 
+						Else
+							tmpWhere += String.Format ("				'NVL({0}, ''''){1}", cols(i).Name, Environment.NewLine) 								
+						End if
+					End if
+				Next 
+					
+				tmpWhere+="		 LIKE ''%' || v_VALUE_TO_FIND "
+						
+				if tmpWhere.Length > 4 Then
+					Response.Write(tmpWhere.Remove(0,2))
+				End If
+			%> || '%'' ';
+        END;
+	ELSE
+        BEGIN
+            v_SQLWHERE := ' WHERE (0 = 0)';
+        END;
+	END IF;	
+	
+    IF LENGTH(v_WHERE_CLAUSE) > 0 THEN 
+        BEGIN
+		    v_SQLWHERE := v_SQLWHERE || ' AND (' || v_WHERE_CLAUSE || ') ';
+	    END;
+    END IF;                
+    
+    IF LENGTH(v_ORDER_BY) > 0 THEN
+		BEGIN
+			v_SQLORDERBY := ' ORDER BY ' || v_ORDER_BY ;
+		END;
+	ELSE
+		BEGIN
+			v_SQLORDERBY := <%=BuildOrderList(colsList)%>;
+		END;
+	END IF;
+						
+	--Set RowCount After Total Rows is determined
+    -- Return paged results
+
+	v_SUBSQL := 'SELECT <%= BuildColList(colsList) %>, ROW_NUMBER() over (' || v_SQLORDERBY || ') As ROW_NUMBER
+				 FROM <%= Source.Name %> ' || v_SQLWHERE;
+										
+	v_SQL := 'SELECT <%= BuildColList(colsList) %>
+			  FROM (' || v_SUBSQL || ') A 
+			  WHERE ROW_NUMBER > ' || v_PageLowerBound || ' AND
+			  ROW_NUMBER <= ' || v_PageUpperBound || ' ORDER BY ROW_NUMBER';
+							
+	OPEN cv_1 FOR
+    v_SQL;							
+END;
+/
+<%Case DbmsTypeEnum.SqlServer%>
+BEGIN
+DECLARE @PageLowerBound int
+DECLARE @PageUpperBound int
+DECLARE @RowsToReturn int
+
+-- First set the rowcount
+SET @RowsToReturn = @PAGE_SIZE * (@PAGE_INDEX + 1)
+--SET ROWCOUNT @RowsToReturn
+
+-- Set the page bounds
+SET @PageLowerBound = @PAGE_SIZE * @PAGE_INDEX
+SET @PageUpperBound = @PageLowerBound + @PAGE_SIZE
+
+				<% if DatabaseVersion = DatabaseVersionEnum.Sql2000 Then %> 
+					-- Create a temp table to store the select results
+					CREATE TABLE #PAGE_INDEX
+					(
+						[IndexId] int IDENTITY (1, 1) NOT NULL,
+						<%=GetPagedHelper(Source.Columns)%> 
+					)
+					
+					-- Insert into the temp table
+					declare @SQL as varchar(8000)
+					declare @SQLWHERE as varchar(8000)
+					declare @SQLORDERBY as varchar(8000)
+					
+					SET @SQL = ' INSERT INTO #PAGE_INDEX '
+					SET @SQL = @SQL + ' SELECT * FROM <%=owner%>[<%= Source.Name %>] '
+					
+					
+					IF LEN(@VALUE_TO_FIND) > 0
+					BEGIN
+						SET @SQLWHERE =  ' WHERE ' +
+					<%
+						dim tmpWhere as String = String.Empty
+						For i as integer = 0 to cols.Count -1
+							if IsGetAnyColumn(cols(i)) Then
+								if i > 0 Then
+									tmpWhere += String.Format ("		+ '' '' + ISNULL(CAST([{0}] AS NVARCHAR),'''') {1}", cols(i).Name, Environment.NewLine) 
+								Else
+									tmpWhere += String.Format ("				'(ISNULL(CAST([{0}] AS NVARCHAR),''''){1}", cols(i).Name, Environment.NewLine) 								
+								End if
+							End if
+						Next 
+					
+						tmpWhere+="		) LIKE ''%' + @VALUE_TO_FIND "
+						
+						if tmpWhere.Length > 4 Then
+							Response.Write(tmpWhere.Remove(0,2))
+						End If
+					%> + '%'' '									
+					END
+					ELSE
+                    BEGIN
+                        SET @SQLWHERE = ' WHERE (0 = 0) '
+                    END 
+                    
+                    IF LEN(@WHERE_CLAUSE) > 0  
+                    BEGIN
+						SET @SQLWHERE = @SQLWHERE + ' AND (' + @WHERE_CLAUSE + ') '
+                    END
+                    
+                    IF LEN(@ORDER_BY) > 0 
+                    BEGIN
+                        SET @SQLORDERBY = 'ORDER BY ' + @ORDER_BY
+                    END
+                    ELSE
+                    BEGIN
+                        SET @SQLORDERBY = <%=BuildOrderList(colsList)%> 
+                    END
+                    
+					-- Populate the temp table
+					exec (@SQL + @SQLWHERE + @SQLORDERBY)
+					
+					-- Return total count
+					SELECT @@ROWCOUNT
+					
+					--Set RowCount After Total Rows is determined
+					SET ROWCOUNT @RowsToReturn
+					
+					
+					-- Return paged results
+					declare @SQLSELECT as varchar(8000)
+					declare @SQLFROM as varchar(8000)
+					
+					SET  @SQLSELECT = 'SELECT 	<%= BuildColList(colsList) %> '
+					SET @SQLFROM = 'FROM 	#PAGE_INDEX PAGE_INDEX
+					WHERE 	PAGE_INDEX.IndexID > ' + CAST(@PageLowerBound AS nvarchar) + ' AND
+							PAGE_INDEX.IndexID <= ' + cast(@PageUpperBound as nvarchar)  + ' ORDER BY PAGE_INDEX.IndexID'
+					
+					exec (@SQLSELECT + @SQLFROM)
+					
+					END
+				<% else 'else Databaseversion %>
+					-- Insert into the temp table
+					declare @SQL as varchar(8000)
+					declare @SUBSQL as varchar(8000)
+					declare @SQLSELECT as varchar(8000)
+					declare @SQLWHERE as varchar(8000)
+					declare @SQLORDERBY as varchar(8000)
+					
+					IF LEN(@VALUE_TO_FIND) > 0
+					BEGIN
+						SET @SQLWHERE = ' WHERE ' +
+					<%
+						dim tmpWhere as String = String.Empty
+						For i as integer = 0 to cols.Count -1
+							if IsGetAnyColumn(cols(i)) Then
+								if i > 0 Then
+									tmpWhere += String.Format ("		+ ISNULL(CAST([{0}] AS NVARCHAR),''''){1}", cols(i).Name, Environment.NewLine) 
+								Else
+									tmpWhere += String.Format ("				'(ISNULL(CAST([{0}] AS NVARCHAR), ''''){1}", cols(i).Name, Environment.NewLine) 								
+								End if
+							End if
+						Next 
+					
+						tmpWhere+="		) LIKE ''%' + @VALUE_TO_FIND "
+						
+						if tmpWhere.Length > 4 Then
+							Response.Write(tmpWhere.Remove(0,2))
+						End If
+					%> + '%'' '
+					END
+					ELSE
+					BEGIN
+						SET @SQLWHERE = ' WHERE (0 = 0) '
+					END
+					
+                    IF LEN(@WHERE_CLAUSE) > 0  
+                    BEGIN
+						SET @SQLWHERE = @SQLWHERE + ' AND (' + @WHERE_CLAUSE + ') '
+                    END
+                    
+                    IF LEN(@ORDER_BY) > 0 
+                    BEGIN
+                        SET @SQLORDERBY = 'ORDER BY ' + @ORDER_BY
+                    END
+                    ELSE
+                    BEGIN
+                        SET @SQLORDERBY = <%=BuildOrderList(colsList)%> 
+                    END
+                    					
+					-- Return total count
+					--SET @SQL = 'SELECT COUNT(1) 
+					--			FROM <%=owner%>[<%= Source.Name %>] '
+					--			+ @SQLWHERE
+					--exec (@SQL)
+					
+					--Set RowCount After Total Rows is determined
+					SET ROWCOUNT @RowsToReturn
+					
+					-- Return paged results
+					
+					SET @SUBSQL = 'SELECT *, Row_Number() over (' + @SQLORDERBY + ') As RowNumber
+										FROM <%=owner%>[<%= Source.Name %>]' + @SQLWHERE
+										
+					SET @SQL = 	'SELECT <%= BuildColList(colsList) %>
+								FROM (' + @SUBSQL + ') A 
+								WHERE RowNumber > ' + CAST(@PageLowerBound AS VARCHAR(10)) + ' AND
+										RowNumber <= ' + CAST(@PageUpperBound AS VARCHAR(10)) + ' ' +
+								'ORDER BY RowNumber'
+							
+					exec(@SQL)
+								
+					END					
+
+				<% End if 'End Databaseversion%> 
+		
+GO	
+<%End Select%>
+
+<%
+		End If 'End IncludeGetByAny			
+	Next
+%>		
+
+<script runat="template">
+Public CONST ROWGUIDCOL As String = "CS_IsRowGuidCol"
+
+Public Enum TransactionIsolationLevelEnum
+	None
+	ReadCommitted
+	ReadUncommitted
+	RepeatableRead
+	Serializable
+End Enum
+
+Public Enum DatabaseVersionEnum
+	Sql2000
+	Sql2005AndUpper
+End Enum
+
+Public Enum DbmsTypeEnum
+	SqlServer
+	Oracle
+	MySql
+	Access
+End Enum
+
+Public function GetOrderByHelper(columns as ColumnSchemaCollection) as String
+	dim result as string = "ORDER BY "
+	for i as integer = 0 to columns.Count -1
+        Select Case DbmsType
+            Case DbmsTypeEnum.Oracle
+                result += columns(i).Name
+            Case Else
+            	result += "[" + columns(i).Name + "]"
+        End Select
+		If i < columns.Count -1 Then
+			result += ", "
+		End If
+	Next i
+	result = "'" + result + "'" 
+	Return result
+End Function
+
+Public Function BuildOrderList(ByVal cols As ViewColumnSchemaCollection) As String
+	Dim prefix As String =  "ORDER BY " 
+	Dim retVal As String =  "" 
+	Dim blnNotFirstField as Boolean = False
+	For each col as ViewColumnSchema in cols
+		If blnNotFirstField = false Then
+            Select Case DbmsType
+                Case DbmsTypeEnum.Oracle
+                    retVal += "'" + prefix  + col.Name.ToString  + "'"
+                Case DbmsTypeEnum.SqlServer
+                    retVal += "'" + prefix + "[" + col.Name.ToString  + "]'"
+            End Select
+			
+		End If
+		blnNotFirstField = True
+	next col
+	Return retVal
+End Function
+
+Private Source as ViewSchema 'View 
+Private Owner, Name, CommandStem As String
+Private tableComment as String
+Private ViewTextString as String 'View Text Ex. CREATE xxx AS SELECT .... FROM .... GO
+Private Cols, ColsList as ViewColumnSchemaCollection
+Private blnNotFirstField as Boolean
+
+Public Function StrippedTableName(tableName as String, stringToStripped as String) as String
+	dim stringToStrips() as String = Split(stringToStripped, ";")
+	
+	if stringToStrips.Length > 0 Then
+		For i as integer = 0 to stringToStrips.Length - 1
+			tableName = Replace(tableName, stringToStrips(i), "")
+		Next
+	End If
+	
+	return tableName	
+End Function
+
+'''Create ColumnSchemaCollection which Exclude Fields
+Public Function GetAcceptFields(cols As ViewColumnSchemaCollection) As ViewColumnSchemaCollection
+	dim columns as ViewColumnSchemaCollection = new ViewColumnSchemaCollection
+		For i as short = 0 to cols.Count-1 
+			dim col as ViewColumnSchema = cols.Item(i)
+			dim blnUpdatable as Boolean = true
+			if Not ExcludeFields is nothing then
+				For j as Short = 0 to ExcludeFields.Length -1
+					if System.String.Equals(ExcludeFields(j).ToString, col.Name.ToString, 1 ) = True then
+						blnUpdatable = False
+					end if
+				next j
+			End If
+			if blnUPdatable then columns.Add(col)
+		next i
+	return columns 
+End Function
+
+
+Public Function GetDropStatement(owner as String, procedureName as string) as String
+	dim strSql as string
+    
+    	Select Case DbmsType
+		Case DbmsTypeEnum.Oracle
+            procedureName = Change2OracleStoredProcedureName(procedureName)
+            
+			strSql = "/****** Drop Stored Procedure: " + procedureName + " Script Date: " + DateTime.Now.ToLongDateString() + "******/" + environment.NewLine
+			strSql = strSql + "BEGIN" + environment.NewLine
+			strSql = strSql + " EXECUTE IMMEDIATE 'DROP PROCEDURE " + procedureName + "';" + environment.NewLine
+			strSql = strSql + " 	EXCEPTION" + environment.NewLine
+			strSql = strSql + " 	WHEN OTHERS THEN" + environment.NewLine
+			strSql = strSql + "			NULL;" + environment.NewLine
+			strSql = strSql + "END;" + environment.NewLine
+            strSql = strSql + "/" + environment.NewLine 
+		Case Else
+			strSql = "/****** Drop Stored Procedure: " + owner + procedureName + " Script Date: " + DateTime.Now.ToLongDateString() + "******/" + environment.NewLine
+			strSql = strSql + "if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[" + procedureName + "]') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + environment.NewLine
+			strsql = strSql + "drop procedure " + owner + "[" + procedureName + "]" + environment.NewLine
+			strSql = strSql + "GO" + environment.NewLine
+	End Select
+	
+
+	return strSql
+End Function
+
+Public Function GetProcedureHeader(owner as String, procedureName as String, authur as String, purpose as string) as String
+	dim strFormat as String = ""
+	dim strText as String = ""
+
+    Select Case DbmsType
+		Case DbmsTypeEnum.Oracle
+            procedureName = Change2OracleStoredProcedureName(procedureName)
+    End Select
+
+	strFormat = "/*============================================================" + environment.NewLine
+	strFormat = strFormat + "Procedure:	 	{0}[{1}]" + environment.NewLine
+	strFormat = strFormat + "Author:			auto-generated by CodeSmith using Template 'CDSLib2013_StoredProcedures.cst'" + environment.NewLine
+	strFormat = strFormat + "				by {2}" + environment.NewLine
+	strFormat = strFormat + "Created Date:	{3}" + environment.NewLine
+ 	strFormat = strFormat + environment.NewLine
+	strFormat = strFormat + "Purposes:" + environment.NewLine
+	strFormat = strFormat + "			{4}" + environment.NewLine
+	strFormat = strFormat + environment.NewLine
+	strFormat = strFormat + "============================================================" + environment.NewLine
+	strFormat = strFormat + "Revision History:" + environment.NewLine
+	strFormat = strformat + "Date:		By		Description" + environment.NewLine
+	strFormat = strFormat + "------------------------------------------------------------------------------------------" + environment.NewLine
+	strFormat = strFormat + environment.NewLine
+	strFormat = strFormat + "============================================================*/" + environment.NewLine
+	
+	strText = String.Format(strformat, owner, procedureName, authur, DateTime.Now.ToLongDateString(), purpose)	
+	
+	return strText
+End Function
+
+Public Function GetProcedureDeclaration(owner as String, procedureName as string, procedureType as String, _
+										optional cols as ViewColumnSchemaCollection = nothing, _
+										optional rowVersion as ViewColumnSchema = nothing) _
+										as String
+	dim strText as String =""
+
+	Select Case DbmsType 
+		Case DbmsTypeEnum.Oracle
+            procedureName = Change2OracleStoredProcedureName(procedureName)
+			strText = GetProcedureDeclarationOracle(owner, procedureName,procedureType,cols,rowVersion)
+		Case else
+			strText = GetProcedureDeclarationSql(owner,procedureName,procedureType,cols,rowVersion)
+	End Select
+	
+	return strText
+End Function
+
+Public Function GetProcedureDeclarationOracle(owner as String, procedureName as string, procedureType as String, _
+										optional cols as ViewColumnSchemaCollection = nothing, _
+										optional rowVersion as ViewColumnSchema = nothing) _
+										as String
+	dim strText as String =""
+	dim strParameter as String = ""
+	dim strEndDeclare as String = ""
+	
+    strText = "set define off;" + environment.NewLine 
+    strText = strText + environment.NewLine
+	strText = "CREATE OR REPLACE PROCEDURE """ + procedureName + """" + environment.NewLine
+	
+	strEndDeclare  = "AS" + environment.NewLine
+	
+	select case procedureType.Trim.ToUpper
+
+		case "FIND"
+			Dim blnNotFirstFields As Boolean = False
+			strParameter = "(" + environment.NewLine 
+			strParameter = strParameter  + "v_WHERE_CLAUSE IN VARCHAR2 DEFAULT NULL, " + environment.NewLine	
+			strParameter = strParameter + "v_ORDER_BY IN VARCHAR2 DEFAULT NULL, " + environment.NewLine
+			strParameter = strParameter + "v_TOP IN NUMBER DEFAULT NULL," + environment.NewLine
+			strParameter = strParameter + "cv_1 IN OUT SYS_REFCURSOR" + environment.NewLine 
+			strParameter = strParameter + ")" + environment.NewLine	
+		
+		case "GETALL"
+			strParameter = "(" + environment.NewLine 
+			strParameter = strParameter + "v_ORDER_BY IN VARCHAR2 DEFAULT NULL, " + environment.NewLine
+			strParameter = strParameter + "v_TOP IN NUMBER DEFAULT NULL," + environment.NewLine
+			strParameter = strParameter + "cv_1 IN OUT SYS_REFCURSOR" + environment.NewLine 
+			strParameter = strParameter + ")" + environment.NewLine		
+		case "GETPAGED"
+			strParameter = "(" + environment.NewLine
+			strParameter = strParameter + "v_WHERE_CLAUSE IN VARCHAR2 DEFAULT NULL," + environment.NewLine
+			strParameter = strParameter + "v_ORDER_BY IN VARCHAR2 DEFAULT NULL, " + environment.NewLine
+			strParameter = strParameter + "v_PAGE_INDEX IN NUMBER DEFAULT NULL, " + environment.NewLine
+			strParameter = strParameter + "v_PAGE_SIZE IN NUMBER DEFAULT NULL," + environment.NewLine
+			strParameter = strParameter + "cv_1 IN OUT SYS_REFCURSOR " + environment.NewLine 
+			'strParameter = strParameter + "cv_2 IN OUT SYS_REFCURSOR" + environment.NewLine 
+			strParameter = strParameter + ")" + environment.NewLine
+		case "COUNT"
+			strParameter = "(" + environment.NewLine			
+			strParameter = strParameter + "v_WHERE_CLAUSE IN VARCHAR2 DEFAULT NULL," + environment.NewLine	
+			strParameter = strParameter + "cv_1 IN OUT SYS_REFCURSOR" + environment.NewLine 
+			strParameter = strParameter + ")" + environment.NewLine					
+		case "GETBYPK"
+			strParameter = "(" + environment.NewLine						
+			For  i as integer = 0 To  cols.count - 1 
+				dim _strParameter as String =GetOracleParameterStatement(cols(i)) 
+				if i < cols.Count -1 Then
+					_strParameter = _strParameter + ", "
+				End If
+				if cols(i).Description.Length > 0 Then
+					_strParameter = _strParameter + "-- " + cols(i).Description
+				End if	
+                strParameter = strParameter + _strParameter
+                if i = cols.count -1 then
+                    strParameter = strParameter + ","
+                End if
+				strParameter = strParameter + Environment.NewLine
+			Next
+			strParameter = strParameter + "cv_1 IN OUT SYS_REFCURSOR" + environment.NewLine + ")" + environment.NewLine			
+		case "GETBYFK"
+			strParameter = "(" + environment.NewLine						
+			For  i as integer = 0 To  cols.count - 1 
+				dim _strParameter as String =GetOracleParameterStatement(cols(i)) 
+				if i < cols.Count -1 Then
+					_strParameter = _strParameter + ", "
+				End If
+				if cols(i).Description.Length > 0 Then
+					_strParameter = _strParameter + "-- " + cols(i).Description
+				End if
+				strParameter = strParameter + _strParameter
+                if i = cols.count -1 then
+                    strParameter = strParameter + ","
+                End if
+				strParameter = strParameter + Environment.NewLine
+			Next
+			strParameter = strParameter + "cv_1 IN OUT SYS_REFCURSOR" + environment.NewLine + ")" + environment.NewLine		
+		case "GETBYANY"
+			strParameter = "(" + environment.NewLine						
+			strParameter = strParameter + "v_WHERE_CLAUSE IN VARCHAR2 DEFAULT NULL, " + environment.NewLine				
+			strParameter = strParameter + "v_VALUE_TO_FIND IN VARCHAR2 DEFAULT NULL, " + environment.NewLine	
+            strParameter = strParameter + "v_ORDER_BY IN VARCHAR2 DEFAULT NULL," + environment.NewLine
+			strParameter = strParameter + "v_PAGE_INDEX IN NUMBER DEFAULT NULL, " + environment.NewLine
+			strParameter = strParameter + "v_PAGE_SIZE IN NUMBER DEFAULT NULL," + environment.NewLine
+            strParameter = strParameter + "cv_1 IN OUT SYS_REFCURSOR" + environment.NewLine 
+            'strParameter = strParameter + "cv_2 IN OUT SYS_REFCURSOR" + environment.NewLine
+			strParameter = strParameter + ")" + environment.NewLine
+	end select
+
+	return strText + strParameter + strEndDeclare
+End Function
+
+Public Function GetProcedureDeclarationSql(owner as String, procedureName as string, procedureType as String, _
+										optional cols as ViewColumnSchemaCollection = nothing, _
+										optional rowVersion as ViewColumnSchema = nothing) _
+										as String
+	dim strText as String =""
+	dim strParameter as String = ""
+	dim strEndDeclare as String = ""
+	
+	strText = "CREATE PROCEDURE " + owner + "[" + procedureName + "]" + environment.NewLine
+	
+	strEndDeclare  = "AS" + environment.NewLine
+	strEndDeclare  = strEndDeclare  + environment.NewLine
+	strEndDeclare = strEndDeclare + "SET NOCOUNT ON" + environment.NewLine
+	
+	select case procedureType.Trim.ToUpper
+
+		case "FIND"
+			Dim blnNotFirstFields As Boolean = False
+			strParameter = "(" + environment.NewLine 
+			strParameter = strParameter  + "@WHERE_CLAUSE VARCHAR (8000), " + environment.NewLine	
+			strParameter = strParameter + "@ORDER_BY VARCHAR(200), " + environment.NewLine
+			strParameter = strParameter + "@TOP INT " + environment.NewLine			
+			strParameter = strParameter + ")" + environment.NewLine	
+		
+		case "GETALL"
+			strParameter = "(" + environment.NewLine 
+			strParameter = strParameter + "@ORDER_BY VARCHAR(200), " + environment.NewLine
+			strParameter = strParameter + "@TOP INT " + environment.NewLine
+			strParameter = strParameter + ")" + environment.NewLine	
+		case "GETPAGED"
+			strParameter = "(" + environment.NewLine
+			strParameter = strParameter + "@WHERE_CLAUSE VARCHAR (8000)," + environment.NewLine
+			strParameter = strParameter + "@ORDER_BY VARCHAR(200), " + environment.NewLine
+			strParameter = strParameter + "@PAGE_INDEX INT, " + environment.NewLine
+			strParameter = strParameter + "@PAGE_SIZE INT," + environment.NewLine
+            'Start Add By Threerapat 02/06/22
+            strParameter = strParameter + "@COUNT_TOTAL INT OUTPUT" + environment.NewLine
+            'End Add By Threerapat 02/06/22
+			strParameter = strParameter + ")" + environment.NewLine
+		case "COUNT"
+			strParameter = "(" + environment.NewLine			
+			strParameter = strParameter  + "@WHERE_CLAUSE VARCHAR (8000) " + environment.NewLine	
+			strParameter = strParameter + ")" + environment.NewLine					
+		case "GETBYPK"
+			strParameter = "(" + environment.NewLine						
+			For  i as integer = 0 To  cols.count - 1 
+				dim _strParameter as String =GetSqlParameterStatement(cols(i)) 
+				if i < cols.Count -1 Then
+					_strParameter = _strParameter + ", "
+				End If
+				if cols(i).Description.Length > 0 Then
+					_strParameter = _strParameter + "-- " + cols(i).Description
+				End if				
+				strParameter = strParameter + _strParameter + Environment.NewLine
+			Next
+			strParameter = strParameter + ")" + environment.NewLine		
+		case "GETBYFK"
+			strParameter = "(" + environment.NewLine						
+			For  i as integer = 0 To  cols.count - 1 
+				dim _strParameter as String =GetSqlParameterStatement(cols(i)) 
+				if i < cols.Count -1 Then
+					_strParameter = _strParameter + ", "
+				End If
+				if cols(i).Description.Length > 0 Then
+					_strParameter = _strParameter + "-- " + cols(i).Description
+				End if
+				
+				strParameter = strParameter + _strParameter + Environment.NewLine
+			Next
+			strParameter = strParameter + ")" + environment.NewLine		
+		case "GETBYANY"
+			strParameter = "(" + environment.NewLine						
+			strParameter = strParameter + "@WHERE_CLAUSE VARCHAR (8000), " + environment.NewLine				
+			strParameter = strParameter + "@VALUE_TO_FIND VARCHAR (2000), " + environment.NewLine	
+            strParameter = strParameter + "@ORDER_BY VARCHAR (200), " + environment.NewLine
+			strParameter = strParameter + "@PAGE_INDEX INT, " + environment.NewLine
+			strParameter = strParameter + "@PAGE_SIZE INT " + environment.NewLine
+			strParameter = strParameter + ")" + environment.NewLine
+	end select
+
+	return strText + strParameter + strEndDeclare
+End Function
+
+Public Function GetSetTransactionIsolationLevelStatement as String
+	dim returns as String = "SET TRANSACTION ISOLATION LEVEL READ COMMITTED"
+				
+	Select Case IsolationLevel
+		Case TransactionIsolationLevelEnum.None
+			returns = ""
+		Case TransactionIsolationLevelEnum.ReadCommitted
+			returns = "SET TRANSACTION ISOLATION LEVEL READ COMMITTED"
+		Case TransactionIsolationLevelEnum.ReadUncommitted
+			returns = "SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED"
+		Case TransactionIsolationLevelEnum.RepeatableRead
+			returns = "Return SET TRANSACTION ISOLATION LEVEL READ COMMITTED REPEATABLE READ"
+		Case TransactionIsolationLevelEnum.Serializable
+			returns = "Return SET TRANSACTION ISOLATION LEVEL READ COMMITTED SERIALIZABLE"
+	End Select
+	return returns
+End Function
+
+'''Build Column List 
+Public Function BuildColList(ByVal cols As ViewColumnSchemaCollection) As String
+	Dim prefix As String =  "" 
+	Dim retVal As String =  "" 
+	Dim blnNotFirstField as Boolean = False
+	For each col as ViewColumnSchema in cols
+        Select Case DbmsType
+            Case DbmsTypeEnum.Oracle
+                If blnNotFirstField Then
+                    prefix = "," + Environment.NewLine + "		               " 
+                End If
+                    retVal += prefix + col.Name.ToString
+                    blnNotFirstField = True
+            Case Else
+                If blnNotFirstField Then
+			        prefix = "," + Environment.NewLine + "		"
+		        End If
+        	    retVal += prefix + "[" + col.Name.ToString  + "] AS " + ConvertNormalName(col.Name.ToString)
+		        blnNotFirstField = True
+        End Select
+	next col
+	Return retVal
+End Function
+
+'''Build Column List 
+Public Function BuildColList(ByVal cols As ViewColumnSchemaCollection, ByVal AliasTable as String) As String
+	Dim prefix As String =  "" 
+	Dim retVal As String =  "" 
+	Dim blnNotFirstField as Boolean = False
+	For each col as ViewColumnSchema in cols
+		If blnNotFirstField Then
+			prefix = "," + Environment.NewLine + "		"
+		End If
+		retVal += prefix + AliasTable + ".[" + col.Name.ToString  + "]"
+		blnNotFirstField = True
+	next col
+	Return retVal
+End Function
+
+Public Function CleanseDefault(strDefault as String) as String
+	Dim strCleanse As String
+	Dim	intStart As Integer
+	
+	If Mid (strDefault, 1, 15) = "create default " Then
+		intStart = instr (lcase (strDefault), " as ")
+		strCleanse = Mid (strDefault, intStart + 4, len (strDefault))
+	Else
+		strCleanse = strDefault
+	End If
+	
+	strCleanse = Replace (Replace (strCleanse, "('", "'"), "')", "'")
+	
+	Return strCleanse
+End Function
+
+Public function GetPagedHelper(columns as ViewColumnSchemaCollection) as String
+	dim result as string = string.Empty
+	for i as integer = 0 to columns.Count -1
+		result += GetpagedHelper(columns(i))
+		If i < columns.Count -1 Then
+			Result += ", " & Environment.NewLine & "	"
+		End If
+	Next i
+	Return result
+End Function
+
+Public function GetPagedHelper(column as ViewColumnSchema) as String
+	dim param as String = "[" + column.Name + "] " + column.NativeType
+	
+	
+	Select Case column.DataType
+		Case DbType.Decimal
+			param += "(" + column.Precision.ToString + ", " + column.Scale.ToString + ")"
+			
+		Case DbType.AnsiString
+		Case DbType.AnsiStringFixedLength
+		Case DbType.String
+		Case DbType.StringFixedLength
+			if column.NativeType <> "text" and column.NativeType <> "ntext" Then
+				If column.Size > 0 Then
+					param += "(" + column.Size.ToString + ") "
+				End If
+			End If
+	End Select
+	if param.IndexOf("(") < 0 and param.IndexOf(")") < 0 then
+		if column.Size > 0 then
+			Select Case column.NativeType.ToString.ToLower  
+				case "char", "nchar", "varchar", "nvarchar"
+					param += "(" + column.Size.ToString + ")  "
+			end select
+		end if
+	end if
+
+	Return param
+	
+End Function
+
+#Region "Oracle"
+        Public Function IsOracleIdentityColumn(colName As String) as Boolean
+            If (IdentityColumn = colName) Then
+                return True
+            End If
+        
+            return false
+        End Function
+
+        Public Function GetOracleParameterStatement(ByVal column As ColumnSchema) As String
+            Return GetOracleParameterStatement(column, False)
+        End Function
+
+        Public Function GetOracleParameterStatement(ByVal column As ViewColumnSchema) As String
+            Return GetOracleParameterStatement(column, False)
+        End Function
+
+		Public Function GetOracleParameterStatement(ByVal column As ColumnSchema, ByVal isOutput As Boolean) As String
+            Dim paramField  As String = "v_" & column.Name & " " 
+            Dim param As String = column.NativeType
+
+            Select Case column.DataType
+                Case DbType.Decimal
+                    If column.NativeType <> "real" Then
+                        param &= "(" & column.Precision & ", " & column.Scale & ")"
+                    End If
+
+                    Exit Select
+                Case DbType.AnsiString, DbType.AnsiStringFixedLength, DbType.String, DbType.StringFixedLength
+                    'If column.NativeType <> "text" AndAlso column.NativeType <> "ntext" Then
+                    '    If column.Size > 0 Then
+                    '       param &= "(" & column.Size & ")"
+                    '    End If
+                    'End If
+                    Exit Select
+				Case DbType.Binary
+					'param &= "(" & column.Size & ")"
+					Exit Select
+            End Select
+
+
+            If isOutput Then
+                param = paramField & "IN OUT " & param
+            else
+                param = paramField & "IN " & param & " DEFAULT NULL"
+            End If
+
+            Return param
+        End Function
+
+        Public Function GetOracleParameterStatement(ByVal column As ViewColumnSchema, ByVal isOutput As Boolean) As String
+                        Dim paramField  As String = "v_" & column.Name & " " 
+            Dim param As String = column.NativeType
+
+            Select Case column.DataType
+                Case DbType.Decimal
+                    If column.NativeType <> "real" Then
+                        param &= "(" & column.Precision & ", " & column.Scale & ")"
+                    End If
+
+                    Exit Select
+                Case DbType.AnsiString, DbType.AnsiStringFixedLength, DbType.String, DbType.StringFixedLength
+                    If column.NativeType <> "text" AndAlso column.NativeType <> "ntext" Then
+                        If column.Size > 0 Then
+                            param &= "(" & column.Size & ")"
+                        End If
+                    End If
+                    Exit Select
+            End Select
+
+            If isOutput Then
+                param = paramField & "IN OUT " & param
+            else
+                param = paramField & "IN " & param & " DEFAULT NULL"
+            End If
+
+            Return param
+        End Function
+
+		Public Function GetOracleParameterStatement(ByVal column As ColumnSchema, ByVal Name As String) As String
+            Dim param As String = "v_" & Name & " " & column.NativeType
+
+            Select Case column.DataType
+                Case DbType.Decimal
+                    param &= "(" & column.Precision & ", " & column.Scale & ")"
+                    Exit Select
+                CASE DbType.Int16,DbType.Int32,DbType.Int64
+                    param &= "NUMBER DEFAULT NULL"
+                    Exit Select
+                Case DbType.AnsiString, DbType.AnsiStringFixedLength, DbType.String, DbType.StringFixedLength
+                    If column.NativeType <> "text" AndAlso column.NativeType <> "ntext" Then
+                        If column.Size > 0 Then
+                            param &= "(" & column.Size & ")"
+                        End If
+                    End If
+                    Exit Select
+            End Select
+            Return param
+        End Function
+        
+		Public Function GetOracleParameterStatement(ByVal column As ViewColumnSchema, ByVal Name As String) As String
+            Dim param As String = "v_" & Name & " " & column.NativeType
+
+            Select Case column.DataType
+                Case DbType.Decimal
+                    param &= "(" & column.Precision & ", " & column.Scale & ")"
+                    Exit Select
+                Case DbType.AnsiString, DbType.AnsiStringFixedLength, DbType.String, DbType.StringFixedLength
+                    If column.NativeType <> "text" AndAlso column.NativeType <> "ntext" Then
+                        If column.Size > 0 Then
+                            param &= "(" & column.Size & ")"
+                        End If
+                    End If
+                    Exit Select
+            End Select
+            Return param
+        End Function
+        
+        Public Function Change2OracleStoredProcedureName(procedureName as String) As String
+            procedureName = procedureName.Replace("USP_V_", "PV_")
+            
+            If (procedureName.EndsWith("_DEL")) Then
+                procedureName = procedureName.Replace("_DEL", "_DL")
+            Else If (procedureName.EndsWith("_DELW")) 
+                procedureName = procedureName.Replace("_DELW", "_DW")
+            Else If (procedureName.EndsWith("_FND")) 
+                procedureName = procedureName.Replace("_FND", "_FD")
+            Else If (procedureName.EndsWith("_GET_ALL")) 
+                procedureName = procedureName.Replace("_GET_ALL", "_GA")
+            Else If (procedureName.EndsWith("_GET_BY_ANY")) 
+                procedureName = procedureName.Replace("_GET_BY_ANY", "_GN")
+            Else If (procedureName.EndsWith("_GET_BY_PK")) 
+                procedureName = procedureName.Replace("_GET_BY_PK", "_GK")
+            Else If (procedureName.EndsWith("_GET_PAGED")) 
+                procedureName = procedureName.Replace("_GET_PAGED", "_GP")
+            End If
+            
+            Return procedureName
+        End Function
+        
+                ''' <summary>
+        ''' 
+        ''' </summary>
+        ''' <param name="name"></param>
+        ''' <returns></returns>
+        ''' <remark>Add By Threerapat 01/06/22</remark>
+        Public Function ConvertNormalName(ByVal name As String) As String
+            Dim stringSplit As String() = name.Split("_"c)
+            Dim stringName As String = "", stringTemp As String = "", ret As String = ""
+
+            For i As Integer = 0 To stringSplit.GetUpperBound(0)
+                stringTemp = stringSplit(i)
+                    For j As Integer = 0 To stringTemp.Length - 1
+
+                    If j = 0 Then
+                        stringName = stringTemp.Substring(j, 1).ToUpper()
+                    Else
+                        stringName += stringTemp.Substring(j, 1).ToLower()
+                    End If
+            Next
+            ret += stringName
+            Next
+        Return ret
+        
+    End Function
+    
+#End Region
+
+</script>
