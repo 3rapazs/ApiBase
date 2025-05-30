@@ -40,6 +40,10 @@ app.use(`${pathApi}/Imexporter`, routesImexporter);
 import routesArea from "@/Routes/Master/RoutesArea"
 app.use(`${pathApi}/Area`, routesArea);
 
+//[Add By Threerapat On Version 0111 [30/05/2025 16:07:21] ]
+import routesBroker from "@/Routes/Master/RoutesBroker"
+app.use(`${pathApi}/Broker`, routesBroker);
+
 //#endregion Master Routes
 
 //#region Security Routes
