@@ -7,24 +7,63 @@ import ValidateSave from "../Common/ValidateSave";
 import JsonReq from "../Model/Shared/JsonReq";
 import sql from "mssql";
 import Document from "../Common/Document";
-
+import DisplayName from "@/Model/Shared/DisplayName";
+import EntityBase from "@/Model/Shared/EntityBase";
+import DisplayNameData from "@/Display/DisplayName.json"
 class ControllerBaseTable extends ControllerBase {
 
 
     //#region Public
+
+    public async ValidateSave(json: any): Promise<ErrorMessage[]> {
+        // ValidateSave
+        let validateSave: ValidateSave = new ValidateSave();
+        let schemaCollection: Schema[] = await this.GetSchema();
+        let displayNameCollection: DisplayName[] = await this.GetDisplayName();
+        let errorMessage: ErrorMessage[] = await validateSave.ValidateSave(json, schemaCollection, displayNameCollection)
+        // ValidateSaveManual
+        errorMessage.push(...await this.ValidateSaveManual(json))
+        return errorMessage;
+    }
+
+    public async Save(json: any): Promise<Result> {
+        let result: Result = new Result
+        try {
+            const entity: EntityBase = json
+            if (entity) {
+                switch (entity.EntityState.toLocaleLowerCase()) {
+                    case "edit":
+                        result = await this.Update(json);
+                        break;
+                    case "add":
+                        result = await this.Insert(json);
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+
+
+        } catch (error) {
+            result.IsSuccess = false
+            result.Message = error.message
+            let err: ErrorMessage
+            err.MessageDescription = error.message;
+            result.ErrorMessages = []
+            result.ErrorMessages.push(err);
+        }
+        return result;
+    }
+
+
 
     public async Insert(json: any): Promise<Result> {
         let result: Result = new Result
         try {
 
             // ValidateSave
-            let validateSave: ValidateSave = new ValidateSave();
-            let schemaCollection: Schema[] = await this.GetSchema();
-            // ValidateSave
-
-            let errorMessage: ErrorMessage[] = await validateSave.ValidateSave(json, schemaCollection)
-            // ValidateSaveManual
-            errorMessage.push(...await this.ValidateSaveManual(json))
+            let errorMessage: ErrorMessage[] = await this.ValidateSave(json);
             if (errorMessage.length > 0) {
                 result.IsSuccess = false
                 result.ErrorMessages = errorMessage;
@@ -65,13 +104,8 @@ class ControllerBaseTable extends ControllerBase {
     public async Update(json: any): Promise<Result> {
         let result: Result = new Result
         try {
-
-            let validateSave: ValidateSave = new ValidateSave();
-            let schemaCollection: Schema[] = await this.GetSchema();
             // ValidateSave
-            let errorMessage: ErrorMessage[] = await validateSave.ValidateSave(json, schemaCollection)
-            // ValidateSaveManual
-            errorMessage.push(...await this.ValidateSaveManual(json))
+            let errorMessage: ErrorMessage[] = await this.ValidateSave(json);
             if (errorMessage.length > 0) {
                 result.IsSuccess = false
                 result.ErrorMessages = errorMessage;
@@ -173,6 +207,11 @@ class ControllerBaseTable extends ControllerBase {
         return result;
     }
 
+    public async GetSchemaCollection(): Promise<Schema[]> {
+        let schemaCollection: Schema[] = await this.GetSchema();
+        return schemaCollection
+    }
+
     protected DocumentBody(): string {
         let documentText: string = super.DocumentBody();
         let documnet: Document = new Document();
@@ -239,6 +278,9 @@ class ControllerBaseTable extends ControllerBase {
         return null;
     }
 
+    // protected async GetDisplayName(): Promise<DisplayName[]> {
+    //     return null;
+    // }
 
     protected async GetRequestSave(json: any, state: string): Promise<any> {
         return null

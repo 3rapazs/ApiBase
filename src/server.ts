@@ -1,7 +1,9 @@
+//#region คำสั่ง Cmd
 //Run
 //bun --watch src/server.ts
 //Build
 //bun run build
+//#endregion
 
 //#region Import
 import express from "express";
@@ -13,7 +15,7 @@ import ConfigSys from "../src/Config/ConfigSys"
 
 //#region Set App
 const app = express();
-const port: number = 9001;
+const port: number = ConfigSys.Port;
 const pathApi = ConfigSys.PathApi;
 app.use(bodyParser.json());
 app.use(cors());
@@ -21,29 +23,58 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 //#endregion Set App
 
+//#region Main Routes
+import routesMain from "../src/Routes/RoutesMain"
+app.use(`${pathApi}/`, routesMain);
+//#endregion Main Routes
+
+//#region Master Routes
+
 import routesDepot from "../src/Routes/Master/RoutesDepot"
 app.use(`${pathApi}/Depot`, routesDepot);
-
-import routesUser from "../src/Routes/Security/RoutesUser"
-app.use(`${pathApi}/User`, routesUser);
 
 import routesImexporter from "../src/Routes/Master/RoutesImexporter"
 app.use(`${pathApi}/Imexporter`, routesImexporter);
 
-import routesVArea from "./Routes/View/Master/RoutesVArea"
-app.use(`${pathApi}/VArea`, routesVArea);
-
 import routesArea from "./Routes/Master/RoutesArea"
 app.use(`${pathApi}/Area`, routesArea);
 
-app.get("/", async (req: Request, res: Response) => {
-  res.send("Welcome");
-});
+//#endregion Master Routes
 
-app.get("/test", async (req: Request, res: Response) => {
-  res.send("cds");
-});
+//#region Security Routes
+
+import routesUser from "../src/Routes/Security/RoutesUser"
+app.use(`${pathApi}/User`, routesUser);
+
+//#endregion Security Routes
+
+//#region Transaction Routes
+//#endregion Transaction Routes
+
+//#region View Routes
+
+//#region Master Routes
+
+import routesVArea from "./Routes/View/Master/RoutesVArea"
+app.use(`${pathApi}/VArea`, routesVArea);
+
+//#endregion Master Routes
+
+//#region Security Routes
+//#endregion Security Routes
+
+//#region Report Routes
+//#endregion Report Routes
+
+//#region Transaction Routes
+//#endregion Transaction Routes
+
+//#endregion View Routes
+
+//#region app.listen
 
 app.listen(port, () => {
   console.log(`Listening on port ${port}...`);
 });
+
+//#endregion app.listen

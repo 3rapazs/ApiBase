@@ -1,52 +1,53 @@
 import ErrorMessage from "../Model/Shared/ErrorMessage";
 import Schema from "../Model/Shared/Schema";
 import ConfigSys from "../Config/ConfigSys";
+import DisplayName from "@/Model/Shared/DisplayName";
 class ValidateSave {
 
     private _language: string = ConfigSys.Language;
 
-    public async ValidateSave(json: any, schemaList: Schema[]): Promise<ErrorMessage[]> {
+    public async ValidateSave(json: any, schemaList: Schema[], displayNameCollection: DisplayName[]): Promise<ErrorMessage[]> {
         let errorMessage: ErrorMessage[] = []
         let err: ErrorMessage;
         let schema: Schema;
         let value: any;
         let display: string = "";
         let messageDescription = "";
-
+        let displayName: DisplayName
         for (let i = 0; i < schemaList.length; i++) {
             schema = schemaList[i];
             schema.ModelName = await this.GetModelName(schema.ColumnName)
             value = json[schema.ModelName]
 
-            // console.log(schema.ModelName + '-' + value)
-            // console.log(schema.IsNotNull)
-            // console.log(!value)
-            // console.log(value)
-
             if (value === undefined) {
                 value = "";
             }
 
-            // switch (this._language) {
-            //     case "TH":
-            //         display = schema.DisplayTh;
-            //         break;
-            //     case "EN":
-            //         display = schema.DisplayEn;
-            //         break;
-            //     case "OT":
-            //         display = schema.DisplayOther;
-            //         break;
-            //     default:
-            //         break;
-            // }
+            displayName = displayNameCollection.find(u => u.ModelName === schema.ModelName);
             display = schema.ModelName;
+            if (displayName) {
+                switch (this._language) {
+                    case "TH":
+                        display = displayName.DisplyTh;
+                        break;
+                    case "EN":
+                        display = displayName.DisplyEn;
+                        break;
+                    case "OT":
+                        display = displayName.DisplyOt;
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+
 
             // Validate AllowDBNull
             if (schema.IsNotNull && !value && !schema.IsIdentity && schema.DataTypeTs === "string") {
                 err = new ErrorMessage();
-                err.MessageKey = schema.ColumnName;
-                err.MessageTopic = schema.ColumnName;
+                err.MessageKey = schema.ModelName;
+                err.MessageTopic = schema.ModelName;
                 switch (this._language) {
                     case "TH":
                         messageDescription = `ข้อมูลนี้ ${display} ไม่สามารถว่างได้`
@@ -69,8 +70,8 @@ class ValidateSave {
             // Validate Max Lenght
             if (schema.DataTypeTs.toUpperCase() === "STRING" && value != null && value.toString().length > schema.CharacterMaximumLength) {
                 err = new ErrorMessage();
-                err.MessageKey = schema.ColumnName;
-                err.MessageTopic = schema.ColumnName;
+                err.MessageKey = schema.ModelName;
+                err.MessageTopic = schema.ModelName;
                 switch (this._language) {
                     case "TH":
                         messageDescription = `ข้อมูล ${display} มีความยาวเกินกำหนด (${schema.CharacterMaximumLength}) (Over)`
@@ -92,8 +93,8 @@ class ValidateSave {
             if (schema.DataTypeDb.toUpperCase() === "NCHAR" || schema.DataTypeDb.toUpperCase() === "CHAR") {
                 if (value != null && value.length != schema.CharacterMaximumLength) {
                     err = new ErrorMessage();
-                    err.MessageKey = schema.ColumnName;
-                    err.MessageTopic = schema.ColumnName;
+                    err.MessageKey = schema.ModelName;
+                    err.MessageTopic = schema.ModelName;
                     switch (this._language) {
                         case "TH":
                             messageDescription = `ข้อมูล ${display} ความยาวของข้อมูลต้องเท่ากับ (${schema.CharacterMaximumLength}) หลัก`
@@ -118,8 +119,8 @@ class ValidateSave {
                     let valid = (new Date(value)).getTime() > 0;
                     if (!valid) {
                         err = new ErrorMessage();
-                        err.MessageKey = schema.ColumnName;
-                        err.MessageTopic = schema.ColumnName;
+                        err.MessageKey = schema.ModelName;
+                        err.MessageTopic = schema.ModelName;
                         switch (this._language) {
                             case "TH":
                                 messageDescription = `ข้อมูล ${display} รูปแบบวันที่ไม่ถูกต้อง`

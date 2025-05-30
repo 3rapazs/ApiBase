@@ -5,7 +5,8 @@ import JsonReq from "../Model/Shared/JsonReq";
 import Result from '../Model/Shared/Result';
 import ErrorMessage from "../Model/Shared/ErrorMessage";
 import Document from "../Common/Document";
-
+import DisplayName from "@/Model/Shared/DisplayName";
+import DisplayNameData from "@/Display/DisplayName.json"
 
 enum GetType {
   GetAll,
@@ -89,6 +90,13 @@ class ControllerBase {
     documentText += this.DocumentBody()
     documentText += documnet.DocumentEnd()
     return documentText
+  }
+
+  public async GetDisplayName(): Promise<DisplayName[]> {
+    const data: any[] = DisplayNameData
+    const listDisplayNameAll: DisplayName[] = data
+    const result: DisplayName[] = listDisplayNameAll.filter(u => u.TableName === this.tableNameFull);
+    return result;
   }
 
   //#endregion

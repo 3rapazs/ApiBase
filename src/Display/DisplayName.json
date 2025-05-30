@@ -1,0 +1,19 @@
+[
+    {"TableName" : "T_M_AREA","ColumnName" : "AREA_CODE","ModelName" : "AreaCode","DisplyTh" : "AreaCode","DisplyEn" : "AreaCode","DisplyOt" : "AreaCode"},
+    {"TableName" : "T_M_AREA","ColumnName" : "AREA_NAME","ModelName" : "AreaName","DisplyTh" : "AreaName","DisplyEn" : "AreaName","DisplyOt" : "AreaName"},
+    {"TableName" : "T_M_AREA","ColumnName" : "START_DATE","ModelName" : "StartDate","DisplyTh" : "StartDate","DisplyEn" : "StartDate","DisplyOt" : "StartDate"},
+    {"TableName" : "T_M_AREA","ColumnName" : "FINISH_DATE","ModelName" : "FinishDate","DisplyTh" : "FinishDate","DisplyEn" : "FinishDate","DisplyOt" : "FinishDate"},
+    {"TableName" : "T_M_AREA","ColumnName" : "ABBREVIATION_NAME","ModelName" : "AbbreviationName","DisplyTh" : "AbbreviationName","DisplyEn" : "AbbreviationName","DisplyOt" : "AbbreviationName"},
+    {"TableName" : "T_M_AREA","ColumnName" : "AREA_TYPE","ModelName" : "AreaType","DisplyTh" : "AreaType","DisplyEn" : "AreaType","DisplyOt" : "AreaType"},
+    {"TableName" : "T_M_AREA","ColumnName" : "DEPARTMENT_ID","ModelName" : "DepartmentId","DisplyTh" : "DepartmentId","DisplyEn" : "DepartmentId","DisplyOt" : "DepartmentId"},
+    {"TableName" : "T_M_AREA","ColumnName" : "EMAIL_ADDRESS","ModelName" : "EmailAddress","DisplyTh" : "EmailAddress","DisplyEn" : "EmailAddress","DisplyOt" : "EmailAddress"},
+    {"TableName" : "T_M_AREA","ColumnName" : "PAYMENT_PORT","ModelName" : "PaymentPort","DisplyTh" : "PaymentPort","DisplyEn" : "PaymentPort","DisplyOt" : "PaymentPort"},
+    {"TableName" : "T_M_AREA","ColumnName" : "RELEASE_INDICATOR","ModelName" : "ReleaseIndicator","DisplyTh" : "ReleaseIndicator","DisplyEn" : "ReleaseIndicator","DisplyOt" : "ReleaseIndicator"},
+    {"TableName" : "T_M_AREA","ColumnName" : "LOAD_INDICATOR","ModelName" : "LoadIndicator","DisplyTh" : "LoadIndicator","DisplyEn" : "LoadIndicator","DisplyOt" : "LoadIndicator"},
+    {"TableName" : "T_M_AREA","ColumnName" : "RELEASE_INDICATOR_IMPORT","ModelName" : "ReleaseIndicatorImport","DisplyTh" : "ReleaseIndicatorImport","DisplyEn" : "ReleaseIndicatorImport","DisplyOt" : "ReleaseIndicatorImport"},
+    {"TableName" : "T_M_AREA","ColumnName" : "DISCHARGE_INDICATOR","ModelName" : "DischargeIndicator","DisplyTh" : "DischargeIndicator","DisplyEn" : "DischargeIndicator","DisplyOt" : "DischargeIndicator"},
+    {"TableName" : "T_M_AREA","ColumnName" : "CREATE_DATE","ModelName" : "CreateDate","DisplyTh" : "CreateDate","DisplyEn" : "CreateDate","DisplyOt" : "CreateDate"},
+    {"TableName" : "T_M_AREA","ColumnName" : "CREATE_USER","ModelName" : "CreateUser","DisplyTh" : "CreateUser","DisplyEn" : "CreateUser","DisplyOt" : "CreateUser"},
+    {"TableName" : "T_M_AREA","ColumnName" : "UPDATE_DATE","ModelName" : "UpdateDate","DisplyTh" : "UpdateDate","DisplyEn" : "UpdateDate","DisplyOt" : "UpdateDate"},
+    {"TableName" : "T_M_AREA","ColumnName" : "UPDATE_USER","ModelName" : "UpdateUser","DisplyTh" : "UpdateUser","DisplyEn" : "UpdateUser","DisplyOt" : "UpdateUser"}
+]
