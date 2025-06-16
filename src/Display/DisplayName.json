@@ -1,6 +1,6 @@
 [
-    {"TableName" : "T_M_AREA","ColumnName" : "AREA_CODE","ModelName" : "AreaCode","DisplyTh" : "AreaCode","DisplyEn" : "AreaCode","DisplyOt" : "AreaCode"},
-    {"TableName" : "T_M_AREA","ColumnName" : "AREA_NAME","ModelName" : "AreaName","DisplyTh" : "AreaName","DisplyEn" : "AreaName","DisplyOt" : "AreaName"},
+    {"TableName" : "T_M_AREA","ColumnName" : "AREA_CODE","ModelName" : "AreaCode","DisplyTh" : "รหัส","DisplyEn" : "AreaCode","DisplyOt" : "AreaCode"},
+    {"TableName" : "T_M_AREA","ColumnName" : "AREA_NAME","ModelName" : "AreaName","DisplyTh" : "ชื่อ","DisplyEn" : "AreaName","DisplyOt" : "AreaName"},
     {"TableName" : "T_M_AREA","ColumnName" : "START_DATE","ModelName" : "StartDate","DisplyTh" : "StartDate","DisplyEn" : "StartDate","DisplyOt" : "StartDate"},
     {"TableName" : "T_M_AREA","ColumnName" : "FINISH_DATE","ModelName" : "FinishDate","DisplyTh" : "FinishDate","DisplyEn" : "FinishDate","DisplyOt" : "FinishDate"},
     {"TableName" : "T_M_AREA","ColumnName" : "ABBREVIATION_NAME","ModelName" : "AbbreviationName","DisplyTh" : "AbbreviationName","DisplyEn" : "AbbreviationName","DisplyOt" : "AbbreviationName"},

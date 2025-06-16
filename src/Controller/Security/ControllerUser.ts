@@ -7,6 +7,7 @@ import UserModel from "../../Model/Security/UserModel";
 import JsonReq from "../../Model/Shared/JsonReq";
 import ConfigSys from '../../Config/ConfigSys';
 import TripleDES from '../../Common/TripleDES'
+import Result from '@/Model/Shared/Result';
 class ControllerUser extends ControllerBase {
 
     protected async ValidateSaveManual(json: any): Promise<ErrorMessage[]> {
@@ -67,7 +68,8 @@ class ControllerUser extends ControllerBase {
     }
 
 
-    public async Login(json: UserModel): Promise<string> {
+    public async Login(json: UserModel): Promise<Result> {
+        const result: Result = new Result();
         const tripleDES = new TripleDES();
         const user: string = json.UserId;
         const passwordEncrypted: string = tripleDES.EncryptTripleDES(json.Password);
@@ -82,11 +84,16 @@ class ControllerUser extends ControllerBase {
             }
             try {
                 token = await jwt.sign(user, secret, { expiresIn: expiresIn })
+                result.IsSuccess = true;
+                result.Data = [];
+                const data: any = { "Token": token, "RoleId": entity.RoleId }
+                result.Data = data
+
             } catch (error) {
-                console.log(error)
+
             }
         }
-        return token
+        return result
     }
 
     private async GetRecordByUserPassword(user: string, password: string): Promise<UserModel> {

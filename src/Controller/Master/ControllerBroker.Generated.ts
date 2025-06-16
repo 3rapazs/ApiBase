@@ -31,11 +31,12 @@ class ControllerBrokerGenerated extends ControllerBase {
         let entity: Model = json
         let request = await this.CreateRequest(entity.Tran);
         if (state === "edit") {
-            request.input("ORIGINAL_BRK_TAX_NO", sql.NVarChar, entity.BrkTaxNo);            request.input("ORIGINAL_BRK_BRN_NO", sql.Numeric(4,0), entity.BrkBrnNo);
+            request.input("ORIGINAL_BRK_TAX_NO", sql.NVarChar, entity.BrkTaxNo);
+            request.input("ORIGINAL_BRK_BRN_NO", sql.Numeric(4, 0), entity.BrkBrnNo);
         } else {
         }
         request.input("BRK_TAX_NO", sql.NVarChar, entity.BrkTaxNo);
-        request.input("BRK_BRN_NO", sql.Numeric(4,0), entity.BrkBrnNo);
+        request.input("BRK_BRN_NO", sql.Numeric(4, 0), entity.BrkBrnNo);
         request.input("BRK_NAME_ENG", sql.NVarChar, entity.BrkNameEng);
         request.input("BRK_NAME_THAI", sql.NVarChar, entity.BrkNameThai);
         request.input("STREET_AND_NO", sql.NVarChar, entity.StreetAndNo);
@@ -60,7 +61,7 @@ class ControllerBrokerGenerated extends ControllerBase {
         let entity: Model = json
         let request = await this.CreateRequest(entity.Tran);
         request.input("BRK_TAX_NO", sql.NVarChar, entity.BrkTaxNo);
-        request.input("BRK_BRN_NO", sql.Numeric(4,0), entity.BrkBrnNo);
+        request.input("BRK_BRN_NO", sql.Numeric(4, 0), entity.BrkBrnNo);
         return request
     }
 
@@ -84,10 +85,10 @@ class ControllerBrokerGenerated extends ControllerBase {
         let columnDocument: string
         let entity: Model = new Model();
         const currentDate: Date = new Date();
-        
+
         if (state === "edit") {
-        entity.OriginalBrkTaxNo = "string";
-        entity.OriginalBrkBrnNo = 0;
+            entity.OriginalBrkTaxNo = "string";
+            entity.OriginalBrkBrnNo = 0;
         }
 
 
@@ -104,7 +105,7 @@ class ControllerBrokerGenerated extends ControllerBase {
         entity.EmailAddress = "string";
         entity.Telephone = "string";
         entity.Fax = "string";
-        entity.IsDefaultBroker = "string";
+        entity.IsDefaultBroker = false;
         entity.Note1 = "string";
         entity.CreateDate = currentDate;
         entity.CreateUser = "string";

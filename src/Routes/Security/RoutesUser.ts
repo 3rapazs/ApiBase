@@ -169,9 +169,8 @@ router.put("/Update", auth.authenticateJWT(programCode, actionCode.Update), asyn
 router.post("/Login", async (req: Request, res: Response): Promise<void> => {
   let result: Result
   try {
-    const token = await bl.Login(req.body)
-    const jsonRes = { token: token }
-    res.status(200).json(jsonRes)
+    result = await bl.Login(req.body)
+    res.status(200).json(result)
   } catch (error) {
     res.status(400).json(result)
   }

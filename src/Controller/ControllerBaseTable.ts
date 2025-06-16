@@ -77,6 +77,8 @@ class ControllerBaseTable extends ControllerBase {
                 result.IsSuccess = false
                 let err: ErrorMessage = new ErrorMessage();
                 err.MessageDescription = "ข้อมูลซ้ำในระบบ"
+                err.MessageKey = ""
+                err.MessageTopic = ""
                 result.ErrorMessages = []
                 result.ErrorMessages.push(err);
                 result.Message = result.ErrorMessages[0].MessageDescription
