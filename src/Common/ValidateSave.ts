@@ -16,12 +16,8 @@ class ValidateSave {
         let displayName: DisplayName
         for (let i = 0; i < schemaList.length; i++) {
             schema = schemaList[i];
-            schema.ModelName = await this.GetModelName(schema.ColumnName)
             value = json[schema.ModelName]
 
-            if (value === undefined) {
-                value = "";
-            }
 
             displayName = displayNameCollection.find(u => u.ModelName === schema.ModelName);
             display = schema.ModelName;
@@ -115,7 +111,7 @@ class ValidateSave {
 
             // Validate Date/DateTime
             if (schema.DataTypeDb.toUpperCase() === "DATE" || schema.DataTypeDb.toUpperCase() === "DATETIME") {
-                if (value != null) {
+                if (value) {
                     let valid = (new Date(value)).getTime() > 0;
                     if (!valid) {
                         err = new ErrorMessage();
@@ -137,6 +133,26 @@ class ValidateSave {
                         err.MessageDescription = messageDescription;
                         errorMessage.push(err);
                     }
+                }
+                else if (schema.IsNotNull) {
+                    err = new ErrorMessage();
+                    err.MessageKey = schema.ModelName;
+                    err.MessageTopic = schema.ModelName;
+                    switch (this._language) {
+                        case "TH":
+                            messageDescription = `ข้อมูลนี้ ${display} ไม่สามารถว่างได้`
+                            break;
+                        case "EN":
+                            messageDescription = `ข้อมูลนี้ ${display} ไม่สามารถว่างได้`
+                            break;
+                        case "OT":
+                            messageDescription = `ข้อมูลนี้ ${display} ไม่สามารถว่างได้`
+                            break;
+                        default:
+                            break;
+                    }
+                    err.MessageDescription = messageDescription;
+                    errorMessage.push(err);
                 }
             }
 

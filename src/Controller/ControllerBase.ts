@@ -7,7 +7,7 @@ import ErrorMessage from "../Model/Shared/ErrorMessage";
 import Document from "../Common/Document";
 import DisplayName from "@/Model/Shared/DisplayName";
 import DisplayNameData from "@/Display/DisplayName.json"
-
+import Utility from "@/Common/Utility";
 enum GetType {
   GetAll,
   Find,
@@ -28,6 +28,7 @@ class ControllerBase {
   protected generateDate: string;
   protected generateBy: string;
   protected version: string;
+  protected utility: Utility = new Utility();
   //#endregion
 
 

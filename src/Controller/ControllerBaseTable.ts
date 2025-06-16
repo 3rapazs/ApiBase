@@ -20,7 +20,10 @@ class ControllerBaseTable extends ControllerBase {
         let validateSave: ValidateSave = new ValidateSave();
         let schemaCollection: Schema[] = await this.GetSchema();
         let displayNameCollection: DisplayName[] = await this.GetDisplayName();
-        let errorMessage: ErrorMessage[] = await validateSave.ValidateSave(json, schemaCollection, displayNameCollection)
+        let errorMessage: ErrorMessage[] = []
+        if (!json.IsValidatedSchema) {
+            errorMessage = await validateSave.ValidateSave(json, schemaCollection, displayNameCollection)
+        }
         // ValidateSaveManual
         errorMessage.push(...await this.ValidateSaveManual(json))
         return errorMessage;
@@ -112,6 +115,7 @@ class ControllerBaseTable extends ControllerBase {
                 result.IsSuccess = false
                 result.ErrorMessages = errorMessage;
                 result.Message = errorMessage[0].MessageDescription
+                result.Data = errorMessage as []
                 return result
             }
 
@@ -211,6 +215,11 @@ class ControllerBaseTable extends ControllerBase {
 
     public async GetSchemaCollection(): Promise<Schema[]> {
         let schemaCollection: Schema[] = await this.GetSchema();
+        if (schemaCollection) {
+            for (let i = 0; i < schemaCollection.length; i++) {
+                schemaCollection[i].ModelName = this.utility.GetModelName(schemaCollection[i].ColumnName)
+            }
+        }
         return schemaCollection
     }
 

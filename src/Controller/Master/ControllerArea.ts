@@ -16,7 +16,7 @@ import Schema from "@/Model/Shared/Schema";
 import SchemaData from "@/Schema/Master/Area.json"
 
 class ControllerArea extends ControllerBase {
-     protected async ValidateSaveManual(json: any): Promise<ErrorMessage[]> {
+    protected async ValidateSaveManual(json: any): Promise<ErrorMessage[]> {
         let entity: Model = json
         let errorMessage: ErrorMessage[] = []
 
