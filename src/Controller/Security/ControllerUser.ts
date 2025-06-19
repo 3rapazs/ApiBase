@@ -93,6 +93,10 @@ class ControllerUser extends ControllerBase {
 
             }
         }
+        else {
+            result.IsSuccess = false;
+            result.Message = "ไม่พบข้อมูลผู้ใช้ระบบ"
+        }
         return result
     }
 
