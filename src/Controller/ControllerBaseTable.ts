@@ -85,6 +85,7 @@ class ControllerBaseTable extends ControllerBase {
                 result.ErrorMessages = []
                 result.ErrorMessages.push(err);
                 result.Message = result.ErrorMessages[0].MessageDescription
+                result.Data = result.ErrorMessages as []
                 return result
             }
 
