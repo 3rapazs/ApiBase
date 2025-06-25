@@ -30,19 +30,11 @@ app.use(`${pathApi}/`, routesMain);
 
 //#region Master Routes
 
-import routesDepot from "../src/Routes/Master/RoutesDepot"
-app.use(`${pathApi}/Depot`, routesDepot);
-
-import routesImexporter from "../src/Routes/Master/RoutesImexporter"
-app.use(`${pathApi}/Imexporter`, routesImexporter);
 
 //[Add By Threerapat On Version 0111 [30/05/2025 15:28:57] ]
 import routesArea from "@/Routes/Master/RoutesArea"
 app.use(`${pathApi}/Area`, routesArea);
 
-//[Add By Threerapat On Version 0111 [30/05/2025 16:07:21] ]
-import routesBroker from "@/Routes/Master/RoutesBroker"
-app.use(`${pathApi}/Broker`, routesBroker);
 
 //#endregion Master Routes
 

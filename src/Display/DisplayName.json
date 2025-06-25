@@ -34,5 +34,22 @@
     {"TableName" : "T_M_BROKER","ColumnName" : "CREATE_USER","ModelName" : "CreateUser","DisplyTh" : "CreateUser","DisplyEn" : "CreateUser","DisplyOt" : "CreateUser"},
     {"TableName" : "T_M_BROKER","ColumnName" : "UPDATE_DATE","ModelName" : "UpdateDate","DisplyTh" : "UpdateDate","DisplyEn" : "UpdateDate","DisplyOt" : "UpdateDate"},
     {"TableName" : "T_M_BROKER","ColumnName" : "UPDATE_USER","ModelName" : "UpdateUser","DisplyTh" : "UpdateUser","DisplyEn" : "UpdateUser","DisplyOt" : "UpdateUser"},
-    {"TableName" : "T_M_BROKER","ColumnName" : "AEOS_REFERENCE_NO","ModelName" : "AeosReferenceNo","DisplyTh" : "AeosReferenceNo","DisplyEn" : "AeosReferenceNo","DisplyOt" : "AeosReferenceNo"}
+    {"TableName" : "T_M_BROKER","ColumnName" : "AEOS_REFERENCE_NO","ModelName" : "AeosReferenceNo","DisplyTh" : "AeosReferenceNo","DisplyEn" : "AeosReferenceNo","DisplyOt" : "AeosReferenceNo"},
+    {"TableName" : "T_M_BANK","ColumnName" : "BANK_CODE","ModelName" : "BankCode","DisplyTh" : "รหัสธนาคาร","DisplyEn" : "BankCode","DisplyOt" : "BankCode"},
+    {"TableName" : "T_M_BANK","ColumnName" : "BANK_NAME","ModelName" : "BankName","DisplyTh" : "ชื่อธนาคาร","DisplyEn" : "BankName","DisplyOt" : "BankName"},
+    {"TableName" : "T_M_BANK","ColumnName" : "CREATE_DATE","ModelName" : "CreateDate","DisplyTh" : "CreateDate","DisplyEn" : "CreateDate","DisplyOt" : "CreateDate"},
+    {"TableName" : "T_M_BANK","ColumnName" : "CREATE_USER","ModelName" : "CreateUser","DisplyTh" : "CreateUser","DisplyEn" : "CreateUser","DisplyOt" : "CreateUser"},
+    {"TableName" : "T_M_BANK","ColumnName" : "UPDATE_DATE","ModelName" : "UpdateDate","DisplyTh" : "UpdateDate","DisplyEn" : "UpdateDate","DisplyOt" : "UpdateDate"},
+    {"TableName" : "T_M_BANK","ColumnName" : "UPDATE_USER","ModelName" : "UpdateUser","DisplyTh" : "UpdateUser","DisplyEn" : "UpdateUser","DisplyOt" : "UpdateUser"},
+    {"TableName" : "T_M_DEPOT","ColumnName" : "DEPOT_CODE","ModelName" : "DepotCode","DisplyTh" : "DepotCode","DisplyEn" : "DepotCode","DisplyOt" : "DepotCode"},
+    {"TableName" : "T_M_DEPOT","ColumnName" : "DEPOT_NAME","ModelName" : "DepotName","DisplyTh" : "DepotName","DisplyEn" : "DepotName","DisplyOt" : "DepotName"},
+    {"TableName" : "T_M_DEPOT","ColumnName" : "REGION_CODE","ModelName" : "RegionCode","DisplyTh" : "RegionCode","DisplyEn" : "RegionCode","DisplyOt" : "RegionCode"},
+    {"TableName" : "T_M_DEPOT","ColumnName" : "PROVINCE_CODE","ModelName" : "ProvinceCode","DisplyTh" : "ProvinceCode","DisplyEn" : "ProvinceCode","DisplyOt" : "ProvinceCode"},
+    {"TableName" : "T_M_DEPOT","ColumnName" : "DEPOT_COLOR_CODE","ModelName" : "DepotColorCode","DisplyTh" : "DepotColorCode","DisplyEn" : "DepotColorCode","DisplyOt" : "DepotColorCode"},
+    {"TableName" : "T_M_DEPOT","ColumnName" : "DEPOT_COLOR_NAME","ModelName" : "DepotColorName","DisplyTh" : "DepotColorName","DisplyEn" : "DepotColorName","DisplyOt" : "DepotColorName"},
+    {"TableName" : "T_M_DEPOT","ColumnName" : "NOTE1","ModelName" : "Note1","DisplyTh" : "Note1","DisplyEn" : "Note1","DisplyOt" : "Note1"},
+    {"TableName" : "T_M_DEPOT","ColumnName" : "CREATE_DATE","ModelName" : "CreateDate","DisplyTh" : "CreateDate","DisplyEn" : "CreateDate","DisplyOt" : "CreateDate"},
+    {"TableName" : "T_M_DEPOT","ColumnName" : "CREATE_USER","ModelName" : "CreateUser","DisplyTh" : "CreateUser","DisplyEn" : "CreateUser","DisplyOt" : "CreateUser"},
+    {"TableName" : "T_M_DEPOT","ColumnName" : "UPDATE_DATE","ModelName" : "UpdateDate","DisplyTh" : "UpdateDate","DisplyEn" : "UpdateDate","DisplyOt" : "UpdateDate"},
+    {"TableName" : "T_M_DEPOT","ColumnName" : "UPDATE_USER","ModelName" : "UpdateUser","DisplyTh" : "UpdateUser","DisplyEn" : "UpdateUser","DisplyOt" : "UpdateUser"}
 ]
