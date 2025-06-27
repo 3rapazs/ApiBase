@@ -8,6 +8,7 @@ import Document from "../Common/Document";
 import DisplayName from "@/Model/Shared/DisplayName";
 import DisplayNameData from "@/Display/DisplayName.json"
 import Utility from "@/Common/Utility";
+import Schema from "@/Model/Shared/Schema";
 enum GetType {
   GetAll,
   Find,
@@ -98,6 +99,16 @@ class ControllerBase {
     const listDisplayNameAll: DisplayName[] = data
     const result: DisplayName[] = listDisplayNameAll.filter(u => u.TableName === this.tableNameFull);
     return result;
+  }
+
+  public async GetSchemaCollection(): Promise<Schema[]> {
+    let schemaCollection: Schema[] = await this.GetSchema();
+    if (schemaCollection) {
+      for (let i = 0; i < schemaCollection.length; i++) {
+        schemaCollection[i].ModelName = this.utility.GetModelName(schemaCollection[i].ColumnName)
+      }
+    }
+    return schemaCollection
   }
 
   //#endregion
@@ -220,6 +231,9 @@ class ControllerBase {
   //#endregion
 
   //#region Protected
+  protected async GetSchema(): Promise<Schema[]> {
+    return null;
+  }
 
   protected DocumentBody(): string {
     let documentText: string = "";

@@ -214,16 +214,6 @@ class ControllerBaseTable extends ControllerBase {
         return result;
     }
 
-    public async GetSchemaCollection(): Promise<Schema[]> {
-        let schemaCollection: Schema[] = await this.GetSchema();
-        if (schemaCollection) {
-            for (let i = 0; i < schemaCollection.length; i++) {
-                schemaCollection[i].ModelName = this.utility.GetModelName(schemaCollection[i].ColumnName)
-            }
-        }
-        return schemaCollection
-    }
-
     protected DocumentBody(): string {
         let documentText: string = super.DocumentBody();
         let documnet: Document = new Document();
