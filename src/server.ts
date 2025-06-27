@@ -52,7 +52,8 @@ app.use(`${pathApi}/User`, routesUser);
 
 //#region Master Routes
 
-import routesVArea from "./Routes/View/Master/RoutesVArea"
+//[Add By Threerapat On Version 0111 [26/06/2025 17:02:29] ]
+import routesVArea from "@/Routes/View/Master/RoutesVArea"
 app.use(`${pathApi}/VArea`, routesVArea);
 
 //#endregion Master Routes
