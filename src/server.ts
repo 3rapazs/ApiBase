@@ -35,7 +35,8 @@ app.use(`${pathApi}/`, routesMain);
 import routesArea from "@/Routes/Master/RoutesArea"
 app.use(`${pathApi}/Area`, routesArea);
 
-
+import routesBank from "@/Routes/Master/RoutesBank"
+app.use(`${pathApi}/Bank`, routesBank);
 //#endregion Master Routes
 
 //#region Security Routes
