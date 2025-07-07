@@ -10,6 +10,26 @@ class AuthenticateJWT {
 
     private SECRET_KEY: string = ConfigSys.Secret
 
+
+    public authenticate(req: Request, res: Response, next: NextFunction) {
+        const authHeader = req.headers.authorization;
+        const token = authHeader?.split(' ')[0];
+
+        if (!token) {
+            res.status(403)
+            res.send("Token Is Not Null");
+        }
+        try {
+            const res = jwt.verify(token, ConfigSys.Secret);
+            next();
+        } catch (error) {
+            res.status(403)
+            res.send(error.message);
+        }
+
+    }
+
+
     public authenticateJWT(programCode: string, action: string) {
         return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
             try {
